@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+
+
     public function login(Request $request)
     {
         $request->validate([
@@ -15,19 +18,20 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $user = \App\Models\User::where('email', $request->email)->first();
+
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Email atau password salah'
             ], 401);
         }
 
-        $user = $request->user();
-
-        $token = $user->createToken('api-token',['*'])->plainTextToken;
+        $token = $user->createToken('api-token', ['*'])->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'user' => $user,
         ]);
     }
+
 }

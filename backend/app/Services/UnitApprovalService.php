@@ -16,39 +16,40 @@ class UnitApprovalService
     {
         return DB::transaction(function () use ($approver, $ticket, $data) {
 
-            // 1. Simpan histori approval
             TicketApproval::create([
-                'ticket_id'   => $ticket->id,
+                'ticket_id' => $ticket->id,
                 'approved_by' => $approver->id,
-                'role_as'     => 'kepala_unit',
-                'status'      => $data['action'] === 'approve'
-                                    ? 'approved'
-                                    : 'rejected',
-                'notes'       => $data['notes'] ?? null,
+                'role_as' => 'kepala_unit',
+                'status' => $data['action'] === 'approve'
+                    ? 'approved'
+                    : 'rejected',
+                'notes' => $data['notes'] ?? null,
                 'approved_at' => now(),
             ]);
 
-            // 2. Jika reject → workflow berhenti
-            if ($data['action'] === 'reject') {
-                $ticket->update([
-                    'current_status'      => TicketStatus::REJECTED->value,
-                    'current_approver_id' => null,
-                ]);
+            $workflow = app(\App\Workflows\TicketWorkflow::class);
 
+            if ($data['action'] === 'reject') {
+                $workflow->transition($ticket, TicketStatus::REJECTED);
+                $ticket->update(['current_approver_id' => null]);
                 return $ticket;
             }
 
-            // 3. Jika approve → lanjut ke Kepala Department
             $nextApprover = $this->getDepartmentHead($ticket);
-            dd($nextApprover);
+
+            $workflow->transition(
+                $ticket,
+                TicketStatus::WAITING_DEPARTMENT_APPROVAL
+            );
+
             $ticket->update([
-                'current_status'      => TicketStatus::WAITING_DEPARTMENT_APPROVAL->value,
-                'current_approver_id' => $nextApprover->id,
+                'current_approver_id' => $nextApprover->id
             ]);
 
             return $ticket;
         });
     }
+
 
     protected function getDepartmentHead(Ticket $ticket): User
     {

@@ -12,9 +12,11 @@ use App\Http\Controllers\Api\UnitApprovalController;
 
     Route::post('/tickets', [TicketController::class, 'store']);
     Route::get('/user', fn (Request $request) => $request->user());
-
+    
     Route::middleware('permission:approve_ticket')->group(function () {
         Route::post('/tickets/{ticket}/unit-approval',[UnitApprovalController::class, 'handle']
+        );
+        Route::post('/tickets/{ticket}/department-approval', [\App\Http\Controllers\Api\DepartmentApprovalController::class, 'handle']
         );
     });
 

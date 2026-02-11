@@ -10,7 +10,6 @@ class StoreTicketRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // lebih aman, anti 500
         return $this->user() && $this->user()->can('create_ticket');
     }
 

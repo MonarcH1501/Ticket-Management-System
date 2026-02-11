@@ -34,7 +34,7 @@ class UnitApprovalRequest extends FormRequest
 
             $ticket = $this->route('ticket');
 
-            if ($ticket->current_status !== TicketStatus::WAITING_UNIT_APPROVAL->value) {
+            if ($ticket->current_status !== TicketStatus::WAITING_UNIT_APPROVAL) {
                 $validator->errors()->add(
                     'current_status',
                     'Ticket tidak berada pada tahap approval kepala unit.'
