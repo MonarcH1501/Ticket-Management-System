@@ -39,12 +39,16 @@ class TicketWorkflow
 
             TicketStatus::ASSIGNED_TO_PIC =>
                 in_array($to, [
-                    TicketStatus::IN_PROGRESS
+                    TicketStatus::IN_PROGRESS,
                 ]),
 
             TicketStatus::IN_PROGRESS =>
                 in_array($to, [
-                    TicketStatus::COMPLETED
+                    TicketStatus::WAITING_DEPARTMENT_REVIEW,
+                ]),
+            TicketStatus::WAITING_DEPARTMENT_REVIEW =>
+                in_array($to, [
+                    TicketStatus::COMPLETED,
                 ]),
 
             default => false

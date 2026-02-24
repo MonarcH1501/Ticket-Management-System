@@ -22,8 +22,10 @@ class Ticket extends Model
         'created_by',
         'current_status',
         'current_approver_id',
+        'pic_id',
         'priority',
         'due_date',
+        'closed_at',
     ];
 
     protected $casts = [
@@ -54,5 +56,11 @@ class Ticket extends Model
     {
         return $this->hasMany(TicketApproval::class);
     }
+    
+    public function pic()
+    {
+        return $this->belongsTo(User::class, 'pic_id');
+    }
+
 
 }
