@@ -62,5 +62,9 @@ class Ticket extends Model
         return $this->belongsTo(User::class, 'pic_id');
     }
 
+    public function attachments()
+    {
+        return $this->hasMany(TicketAttachment::class);
+    }
 
 }
