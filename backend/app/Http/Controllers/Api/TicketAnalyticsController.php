@@ -133,4 +133,69 @@ class TicketAnalyticsController extends Controller
 
         return response()->json($days);
     }
+
+    public function recentTickets(Request $request)
+    {
+        $query = $this->baseQuery($request->user());
+
+        $tickets = $query
+            ->latest()
+            ->limit(5)
+            ->get([
+                'id',
+                'ticket_code',
+                'title',
+                'current_status',
+                'created_at'
+            ]);
+
+        return response()->json($tickets);
+    }
+
+    public function byDepartment(Request $request)
+    {
+        $query = $this->baseQuery($request->user());
+
+        $data = $query
+            ->selectRaw('department_id, count(*) as total')
+            ->with('department:id,name')
+            ->groupBy('department_id')
+            ->get();
+
+        return response()->json($data);
+    }
+
+    public function byStatus(Request $request)
+    {
+        $query = $this->baseQuery($request->user());
+
+        $data = $query
+            ->selectRaw('current_status, count(*) as total')
+            ->groupBy('current_status')
+            ->get();
+
+        return response()->json($data);
+    }
+
+    public function myTasks(Request $request)
+    {
+        $user = $request->user();
+
+        $tickets = Ticket::where(function ($q) use ($user) {
+
+            $q->where('current_approver_id', $user->id)
+            ->orWhere('pic_id', $user->id);
+
+        })
+        ->latest()
+        ->limit(5)
+        ->get([
+            'id',
+            'ticket_code',
+            'title',
+            'current_status'
+        ]);
+
+        return response()->json($tickets);
+    }
 }

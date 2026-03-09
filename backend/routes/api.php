@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SubmitTicketController;
 use App\Http\Controllers\Api\DepartmentReviewController;
 use App\Http\Controllers\Api\TicketAttachmentController;
 use App\Http\Controllers\Api\TicketAnalyticsController;
+use App\Http\Controllers\Api\LookupController;
 
 
    Route::post('/login', [AuthController::class, 'login']);
@@ -25,12 +26,18 @@ use App\Http\Controllers\Api\TicketAnalyticsController;
         Route::get('/tickets/summary', [TicketAnalyticsController::class, 'summary']);
         Route::get('/tickets/metrics', [TicketAnalyticsController::class, 'metrics']);
         Route::get('/tickets/trends', [TicketAnalyticsController::class, 'trends']);
+        Route::get('/tickets/recent', [TicketAnalyticsController::class,'recentTickets']);
+        Route::get('/tickets/by-department', [TicketAnalyticsController::class,'byDepartment']);
+        Route::get('/tickets/by-status', [TicketAnalyticsController::class,'byStatus']);
+        Route::get('/tickets/my-tasks', [TicketAnalyticsController::class,'myTasks']);
         Route::get('/tickets', [TicketController::class, 'index']);
         Route::get('/tickets/{ticket}', [TicketController::class, 'show']);
         Route::get('/user', fn (Request $request) => $request->user());
         Route::get('/tickets/{ticket}/workflow', [TicketController::class, 'workflow']);
         Route::get('/tickets/{ticket}/attachments', [TicketAttachmentController::class, 'index']);
         Route::get('/tickets/{ticket}/attachments/{attachment}/download',[TicketAttachmentController::class, 'download']);
+        Route::get('/departments', [LookupController::class,'departments']);
+        Route::get('/ticket-categories', [LookupController::class,'ticketCategories']);
 
         //Route Delete
         Route::delete('/tickets/{ticket}/attachments/{attachment}',[TicketAttachmentController::class, 'destroy']);
