@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material"
 
 export default function Footer({ children, style }) {
 
@@ -6,11 +6,12 @@ export default function Footer({ children, style }) {
     <Box
       component="footer"
       sx={{
-        mt: 6,
-        py: 3,
-        borderTop: "1px solid #eee",
+        mt: 4,
+        py: 2,
+        borderTop: "1px solid #e2e8f0",
         color: "text.secondary",
         textAlign: "center",
+        background: "#f8fafc",
         ...style
       }}
     >
@@ -18,6 +19,5 @@ export default function Footer({ children, style }) {
         {children || `Ticketing System © ${new Date().getFullYear()}`}
       </Typography>
     </Box>
-  );
-
+  )
 }

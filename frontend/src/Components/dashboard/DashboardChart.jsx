@@ -1,54 +1,54 @@
-import { Card, CardContent, Typography, Box } from "@mui/material";
+  import { Card, CardContent, Typography, Box } from "@mui/material";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip
-} from "recharts";
+  import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    Tooltip
+  } from "recharts";
 
-export default function DashboardChart({ data }) {
+  export default function DashboardChart({ data }) {
 
-  return (
-    <Card
-      sx={{
-        borderRadius: 3,
-        background: "#1e293b",
-        color: "white",
-        width: "100%",
-      }}
-    >
+    return (
+      <Card
+        sx={{
+          borderRadius: 3,
+          background: "#1e293b",
+          color: "white",
+          width: "100%",
+        }}
+      >
 
-      <CardContent>
+        <CardContent>
 
-        <Typography sx={{ mb: 2 }}>
-          Ticket Activity
-        </Typography>
+          <Typography sx={{ mb: 2 }}>
+            Ticket Activity
+          </Typography>
 
-        <Box sx={{ height: 320 }}>
+          <Box sx={{ height: 320 }}>
 
-          <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%">
 
-            <BarChart data={data}>
+              <BarChart data={data}>
 
-              <XAxis dataKey="date" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+                <XAxis dataKey="date" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
 
-              <Tooltip />
+                <Tooltip />
 
-              <Bar dataKey="created" fill="#6366f1" />
-              <Bar dataKey="completed" fill="#22c55e" />
+                <Bar dataKey="created" fill="#6366f1" />
+                <Bar dataKey="completed" fill="#22c55e" />
 
-            </BarChart>
+              </BarChart>
 
-          </ResponsiveContainer>
+            </ResponsiveContainer>
 
-        </Box>
+          </Box>
 
-      </CardContent>
+        </CardContent>
 
-    </Card>
-  );
-}
+      </Card>
+    );
+  }

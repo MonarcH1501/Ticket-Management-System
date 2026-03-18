@@ -46,7 +46,7 @@ use App\Http\Controllers\Api\LookupController;
         Route::middleware('permission:approve_ticket')->group(function () {
             Route::post('/tickets/{ticket}/unit-approval', [UnitApprovalController::class, 'handle']);
             Route::post('/tickets/{ticket}/department-approval', [DepartmentApprovalController::class, 'handle']);
-            Route::post('/tickets/{ticket}/department-review', [DepartmentReviewController::class, 'handle']);
+            Route::post('/tickets/{ticket}/department-review', [DepartmentReviewController::class, 'handle']); //setelah assign pic
         });
 
         // Assign PIC

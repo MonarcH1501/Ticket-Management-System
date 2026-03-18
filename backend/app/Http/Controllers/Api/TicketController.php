@@ -138,6 +138,7 @@ class TicketController extends Controller
             'title' => $ticket->title,
             'description' => $ticket->description,
             'current_status' => $ticket->current_status?->value,
+            'current_approver_id' => $ticket->current_approver_id,
             'priority' => $ticket->priority,
             'due_date' => $ticket->due_date,
             'closed_at' => $ticket->closed_at,

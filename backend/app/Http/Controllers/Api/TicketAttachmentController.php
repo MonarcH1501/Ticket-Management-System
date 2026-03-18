@@ -6,10 +6,28 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
-use Illuminate\Support\Facades\Storage;
 
 class TicketAttachmentController extends Controller
 {
+   
+    private function canAccessTicket($user, $ticket)
+    {
+        return 
+            $user->hasRole('superadmin') ||
+
+            // creator
+            $ticket->created_by === $user->id ||
+
+            // PIC
+            $ticket->pic_id === $user->id ||
+
+            // 🔥 CURRENT WORKFLOW ACTOR (KEY!)
+            $ticket->current_approver_id === $user->id;
+    }
+
+    /**
+     * 📤 Upload Attachment
+     */
     public function store(Request $request, Ticket $ticket)
     {
         $request->validate([
@@ -18,13 +36,8 @@ class TicketAttachmentController extends Controller
 
         $user = $request->user();
 
-        // Simple access check (nanti bisa diperketat)
-        if (
-            $ticket->created_by !== $user->id &&
-            $ticket->pic_id !== $user->id &&
-            !$user->hasRole('superadmin')
-        ) {
-            abort(403);
+        if (!$this->canAccessTicket($user, $ticket)) {
+            abort(403, 'Tidak memiliki akses ke ticket ini');
         }
 
         $file = $request->file('file');
@@ -32,10 +45,10 @@ class TicketAttachmentController extends Controller
         $path = $file->store('tickets/'.$ticket->id, 'public');
 
         $attachment = TicketAttachment::create([
-            'ticket_id' => $ticket->id,
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
+            'ticket_id'   => $ticket->id,
+            'file_path'   => $path,
+            'file_name'   => $file->getClientOriginalName(),
+            'mime_type'   => $file->getMimeType(),
             'uploaded_by' => $user->id,
         ]);
 
@@ -45,18 +58,15 @@ class TicketAttachmentController extends Controller
         ], 201);
     }
 
+    /**
+     * 📥 List Attachments
+     */
     public function index(Request $request, Ticket $ticket)
-    {
+    {   
         $user = $request->user();
 
-        // Basic access check (sama seperti detail ticket)
-        if (
-            !$user->hasRole('superadmin') &&
-            $ticket->created_by !== $user->id &&
-            $ticket->pic_id !== $user->id &&
-            $ticket->department_id !== $user->department_id
-        ) {
-            abort(403);
+        if (!$this->canAccessTicket($user, $ticket)) {
+            abort(403, 'Tidak memiliki akses ke attachment ini');
         }
 
         $attachments = $ticket->attachments()
@@ -67,20 +77,27 @@ class TicketAttachmentController extends Controller
         return response()->json($attachments);
     }
 
+    /**
+     * Delete Attachment
+     */
     public function destroy(Request $request, Ticket $ticket, $attachmentId)
     {
         $user = $request->user();
+
+        if (!$this->canAccessTicket($user, $ticket)) {
+            abort(403);
+        }
 
         $attachment = $ticket->attachments()
             ->where('id', $attachmentId)
             ->firstOrFail();
 
-        // Hanya uploader atau superadmin
+        // hanya uploader atau superadmin
         if (
             $attachment->uploaded_by !== $user->id &&
             !$user->hasRole('superadmin')
         ) {
-            abort(403);
+            abort(403, 'Tidak bisa menghapus file ini');
         }
 
         $attachment->delete();
@@ -90,8 +107,17 @@ class TicketAttachmentController extends Controller
         ]);
     }
 
+    /**
+     * 📥 Download Attachment
+     */
     public function download(Request $request, Ticket $ticket, $attachmentId)
     {
+        $user = $request->user();
+
+        if (!$this->canAccessTicket($user, $ticket)) {
+            abort(403, 'Tidak memiliki akses ke file ini');
+        }
+
         $attachment = $ticket->attachments()
             ->where('id', $attachmentId)
             ->firstOrFail();

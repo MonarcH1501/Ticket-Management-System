@@ -10,9 +10,6 @@ use App\Models\TicketCategory;
 class LookupController extends Controller
 {
 
-    /**
-     * Get all departments
-     */
     public function departments()
     {
         return Department::select('id','name')

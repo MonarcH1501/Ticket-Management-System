@@ -1,35 +1,40 @@
 import { Box, TextField, Avatar } from "@mui/material"
 
-export default function Header(){
+export default function Header() {
 
-  return(
+  return (
 
     <Box
       sx={{
-        height:52,
-        px:4,
-        display:"flex",
-        alignItems:"center",
-        justifyContent:"space-between",
-        background:"#0f172a",
-        color:"white"
+        height: 60,
+        px: 4,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: "#0f172a",
+        color: "white",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
       }}
     >
 
       <TextField
         size="small"
-        placeholder="Search..."
+        placeholder="Search tickets..."
         sx={{
-          background:"white",
-          borderRadius:1,
-          width:300
+          background: "white",
+          borderRadius: 2,
+          width: 320,
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 2
+          }
         }}
       />
 
-      <Avatar/>
+      <Avatar sx={{ bgcolor: "#6366f1" }}>
+        U
+      </Avatar>
 
     </Box>
 
   )
-
 }

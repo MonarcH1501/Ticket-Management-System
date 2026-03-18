@@ -6,6 +6,7 @@ import Dashboard from "../pages/Dashboard";
 import Template from "../layouts/Template";
 import TicketList from "../pages/TicketList";
 import CreateTicket from "../pages/CreateTicket";
+import TicketDetail from "../pages/TicketDetail";
 
 export default function AppRoutes() {
   return (
@@ -21,6 +22,7 @@ export default function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/tickets/alltickets" element={<TicketList />} />
           <Route path="/tickets/create" element={<CreateTicket />} />
+          <Route path="/tickets/:id" element={<TicketDetail />} />
         </Route>
       </Route>
 

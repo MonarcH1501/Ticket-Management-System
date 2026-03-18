@@ -84,3 +84,5 @@ class TicketService
         return 'TCK-' . strtoupper(Str::random(6));
     }
 }
+
+
