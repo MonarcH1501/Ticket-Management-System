@@ -181,21 +181,46 @@ class TicketAnalyticsController extends Controller
     {
         $user = $request->user();
 
-        $tickets = Ticket::where(function ($q) use ($user) {
+        $tickets = Ticket::with('approvals')->get();
 
-            $q->where('current_approver_id', $user->id)
-            ->orWhere('pic_id', $user->id);
+        $todo = [];
+        $inProgress = [];
+        $done = [];
 
-        })
-        ->latest()
-        ->limit(5)
-        ->get([
-            'id',
-            'ticket_code',
-            'title',
-            'current_status'
+        foreach ($tickets as $ticket) {
+
+            // 🔥 FIX ENUM
+            $status = strtolower($ticket->current_status->value ?? '');
+
+            // ✅ DONE
+            if (in_array($status, ['completed', 'closed'])) {
+                $done[] = $ticket;
+                continue;
+            }
+
+            // ✅ TO DO
+            if ($ticket->current_approver_id === $user->id) {
+                $todo[] = $ticket;
+                continue;
+            }
+
+            $approvals = $ticket->approvals ?? collect();
+
+            $hasApproved = $approvals
+                ->where('approved_by', $user->id)
+                ->count() > 0;
+
+            $isPic = $ticket->pic_id === $user->id;
+
+            if ($hasApproved || $isPic) {
+                $inProgress[] = $ticket;
+            }
+        }
+
+        return response()->json([
+            'todo' => array_values($todo),
+            'in_progress' => array_values($inProgress),
+            'done' => array_values($done),
         ]);
-
-        return response()->json($tickets);
     }
 }

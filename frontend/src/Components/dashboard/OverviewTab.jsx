@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react"
 import api from "../../api/axios"
 
-import { Grid, Box } from "@mui/material"
+import {
+  Grid,
+  Box,
+  CircularProgress,
+  Typography
+} from "@mui/material"
 
 import StatCard from "./StatCard"
 import DashboardChart from "./DashboardChart"
@@ -17,24 +22,33 @@ export default function OverviewTab(){
   const [summary,setSummary] = useState(null)
   const [trends,setTrends] = useState([])
   const [recent,setRecent] = useState([])
+  const [loading,setLoading] = useState(true)
 
   useEffect(()=>{
 
     const fetchData = async ()=>{
 
-      const [
-        summaryRes,
-        trendsRes,
-        recentRes
-      ] = await Promise.all([
-        api.get("/tickets/summary"),
-        api.get("/tickets/trends"),
-        api.get("/tickets/recent")
-      ])
+      try{
 
-      setSummary(summaryRes.data)
-      setTrends(trendsRes.data)
-      setRecent(recentRes.data)
+        const [
+          summaryRes,
+          trendsRes,
+          recentRes
+        ] = await Promise.all([
+          api.get("/tickets/summary"),
+          api.get("/tickets/trends"),
+          api.get("/tickets/recent")
+        ])
+
+        setSummary(summaryRes.data)
+        setTrends(trendsRes.data)
+        setRecent(recentRes.data)
+
+      }catch(err){
+        console.error("Dashboard error:", err)
+      }finally{
+        setLoading(false)
+      }
 
     }
 
@@ -42,17 +56,37 @@ export default function OverviewTab(){
 
   },[])
 
-  if(!summary) return null
+  // ✅ LOADING CENTER
+  if(loading){
+    return(
+      <Box
+        sx={{
+          display:"flex",
+          flexDirection:"column",
+          alignItems:"center",
+          justifyContent:"center",
+          height:"60vh",
+          gap:2
+        }}
+      >
+        <CircularProgress/>
+        <Typography color="text.secondary">
+          Loading dashboard...
+        </Typography>
+      </Box>
+    )
+  }
 
-  const total = summary.overview?.total ?? 0
-  const progress = summary.overview?.in_progress ?? 0
-  const completed = summary.overview?.completed ?? 0
-  const approval = summary.my_action?.need_my_approval ?? 0
+  const total = summary?.overview?.total ?? 0
+  const progress = summary?.overview?.in_progress ?? 0
+  const completed = summary?.overview?.completed ?? 0
+  const approval = summary?.my_action?.need_my_approval ?? 0
 
   return(
 
     <Box>
 
+      {/* STATS */}
       <Grid container spacing={3} sx={{ mb:3 }}>
 
         <Grid item xs={12} md={3}>
@@ -93,13 +127,12 @@ export default function OverviewTab(){
 
       </Grid>
 
-
-      {/* CHART FULL WIDTH */}
+      {/* CHART */}
       <Box sx={{ mb:3 }}>
         <DashboardChart data={trends}/>
       </Box>
 
-
+      {/* RECENT */}
       <RecentTickets tickets={recent}/>
 
     </Box>

@@ -1,18 +1,23 @@
 import { useEffect, useState } from "react"
 import api from "../../api/axios"
 
-import { Box, Typography } from "@mui/material"
+import { Box, Typography, CircularProgress } from "@mui/material"
 import MyTasks from "./MyTasks"
 
 export default function MyTasksTab(){
 
-  const [tasks,setTasks] = useState([])
+  const [data,setData] = useState(null)
+  const [loading,setLoading] = useState(true)
 
   useEffect(()=>{
 
     api.get("/tickets/my-tasks")
       .then(res=>{
-        setTasks(res.data)
+        console.log("MY TASKS:", res.data) // debug
+        setData(res.data)
+      })
+      .finally(()=>{
+        setLoading(false)
       })
 
   },[])
@@ -23,12 +28,25 @@ export default function MyTasksTab(){
 
       <Typography
         variant="h5"
-        sx={{ mb:2 }}
+        sx={{ mb:3, fontWeight:"bold" }}
       >
         My Tasks
       </Typography>
 
-      <MyTasks tasks={tasks}/>
+      {loading ? (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "60vh"
+      }}
+    >
+      <CircularProgress/>
+    </Box>
+  ) : (
+    <MyTasks data={data}/>
+  )}
 
     </Box>
 

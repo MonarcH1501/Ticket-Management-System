@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import api from "../api/axios"
 
 import {
@@ -24,25 +24,33 @@ export default function TicketDetail() {
   const [ticket, setTicket] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchTicket = async () => {
+  // ✅ FIX: useCallback to satisfy exhaustive-deps
+  const fetchTicket = useCallback(async () => {
     try {
+      setLoading(true)
+
       const res = await api.get(`/tickets/${id}`)
       setTicket(res.data.data ?? res.data)
+
+    } catch (err) {
+      console.error("Failed fetch ticket", err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     fetchTicket()
-  }, [id])
+  }, [fetchTicket])
 
   const getStatusColor = (status) => {
     const s = status?.toUpperCase()
-    if (s.includes("WAITING")) return "warning"
+
+    if (s?.includes("WAITING")) return "warning"
     if (s === "IN_PROGRESS") return "info"
     if (s === "DONE") return "success"
     if (s === "REJECTED") return "error"
+
     return "default"
   }
 
@@ -50,6 +58,14 @@ export default function TicketDetail() {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
         <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (!ticket) {
+    return (
+      <Box sx={{ mt: 5 }}>
+        <Typography>Ticket not found</Typography>
       </Box>
     )
   }
@@ -70,7 +86,7 @@ export default function TicketDetail() {
 
         <Box sx={{ mt: 1 }}>
           <Chip
-            label={ticket.current_status.replaceAll("_", " ")}
+            label={ticket.current_status?.replaceAll("_", " ")}
             color={getStatusColor(ticket.current_status)}
             size="small"
           />
@@ -82,7 +98,6 @@ export default function TicketDetail() {
         {/* LEFT */}
         <Grid item xs={12} md={8}>
 
-          {/* DETAIL CARD */}
           <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
             <CardContent>
 
@@ -132,7 +147,7 @@ export default function TicketDetail() {
                       Status
                     </Typography>
                     <Typography fontWeight="bold">
-                      {ticket.current_status.replaceAll("_", " ")}
+                      {ticket.current_status?.replaceAll("_", " ")}
                     </Typography>
                   </Grid>
 
@@ -147,12 +162,10 @@ export default function TicketDetail() {
 
         {/* RIGHT */}
         <Grid item xs={12} md={4}>
-
           <TicketActions
             ticket={ticket}
             refresh={fetchTicket}
           />
-
         </Grid>
 
       </Grid>
