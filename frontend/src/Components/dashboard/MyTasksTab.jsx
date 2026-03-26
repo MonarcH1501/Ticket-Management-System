@@ -10,16 +10,13 @@ export default function MyTasksTab(){
   const [loading,setLoading] = useState(true)
 
   useEffect(()=>{
-
     api.get("/tickets/my-tasks")
       .then(res=>{
-        console.log("MY TASKS:", res.data) // debug
         setData(res.data)
       })
       .finally(()=>{
         setLoading(false)
       })
-
   },[])
 
   return(
@@ -28,28 +25,27 @@ export default function MyTasksTab(){
 
       <Typography
         variant="h5"
-        sx={{ mb:3, fontWeight:"bold" }}
+        sx={{ mb:3, fontWeight:600 }}
       >
         My Tasks
       </Typography>
 
       {loading ? (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "60vh"
-      }}
-    >
-      <CircularProgress/>
-    </Box>
-  ) : (
-    <MyTasks data={data}/>
-  )}
+        <Box
+          sx={{
+            display:"flex",
+            justifyContent:"center",
+            alignItems:"center",
+            height:"60vh"
+          }}
+        >
+          <CircularProgress color="primary"/>
+        </Box>
+      ) : (
+        <MyTasks data={data}/>
+      )}
 
     </Box>
 
   )
-
 }

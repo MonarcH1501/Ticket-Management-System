@@ -1,70 +1,84 @@
 import {
   Typography,
   Box,
-  Chip
+  Chip,
+  Button
 } from "@mui/material";
-
-import DashboardCard from "./DashboardCard";
+import { useNavigate } from "react-router-dom";
 
 export default function RecentTickets({ tickets }) {
 
+  const navigate = useNavigate();
+
+  const getStatusColor = (status) => {
+    const s = status?.toLowerCase();
+    if (s === "in_progress") return "info";
+    if (s === "completed") return "success";
+    return "warning";
+  };
+
   return (
+    <Box>
 
-    <DashboardCard>
-
-      <Typography sx={{ mb: 2 }}>
+      <Typography sx={{ mb: 2, fontWeight: 600 }}>
         Recent Tickets
       </Typography>
 
-      {tickets.map(ticket => (
+      {tickets.map((ticket, index) => (
 
         <Box
           key={ticket.id}
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems:"center",
+            alignItems: "center",
             py: 1.5,
-            px: 1,
-            borderBottom: "1px solid #334155",
-            borderRadius:1,
-            transition:"0.2s",
-            "&:hover":{ background:"#334155" }
+            px: 2,
+
+            borderBottom: index !== tickets.length - 1 ? "1px solid" : "none",
+            borderColor: "divider",
+
+            transition: "0.2s",
+            "&:hover": {
+              bgcolor: "background.default"
+            }
           }}
         >
 
+          {/* LEFT */}
           <Box>
-
-            <Typography>
+            <Typography fontWeight={600}>
               {ticket.ticket_code}
             </Typography>
 
-            <Typography
-              sx={{
-                fontSize: 12,
-                color: "#94a3b8"
-              }}
-            >
+            <Typography fontSize={13} color="text.secondary">
               {ticket.title}
             </Typography>
-
           </Box>
 
-          <Chip
-            label={ticket.current_status}
-            size="small"
-            sx={{
-              background:"#334155",
-              color:"white"
-            }}
-          />
+          {/* RIGHT */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+
+            <Chip
+              label={ticket.current_status}
+              size="small"
+              color={getStatusColor(ticket.current_status)}
+            />
+
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => navigate(`/tickets/${ticket.id}`)}
+            >
+              View
+            </Button>
+
+          </Box>
 
         </Box>
 
       ))}
 
-    </DashboardCard>
-
+    </Box>
   );
-
 }

@@ -18,103 +18,69 @@ export default function MyTasks({ data }) {
 
   const getColor = (status) => {
     const s = status?.toLowerCase()
-
-    if (s === "in_progress") return "#38bdf8"
-    if (s === "completed" || s === "closed") return "#22c55e"
-    return "#f59e0b"
-  }
-
-  const formatStatus = (status) => {
-    return status?.replaceAll("_", " ")
+    if (s === "in_progress") return "info.main"
+    if (s === "completed") return "success.main"
+    return "warning.main"
   }
 
   return (
-
-    <Box
-      sx={{
-        display: "flex",
-        gap: 2,
-        overflowX: "auto",
-        pb: 2
-      }}
-    >
+    <Box sx={{ display: "flex", gap: 2, overflowX: "auto" }}>
 
       {columns.map((col, i) => (
+        <Box key={i} sx={{ minWidth: 300 }}>
 
-        <Box
-          key={i}
-          sx={{
-            minWidth: 300,
-            flex: 1
-          }}
-        >
-
-          {/* HEADER */}
           <Typography
             sx={{
-              fontWeight: "bold",
-              mb: 1.5,
-              fontSize: 14,
-              color: "#64748b"
+              mb: 2,
+              fontWeight: 600,
+              fontSize: 13,
+              color: "text.secondary"
             }}
           >
             {col.title} ({col.items.length})
           </Typography>
 
-          {/* LIST */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-
-            {col.items.length === 0 && (
-              <Typography fontSize={12} color="text.secondary">
-                No tasks
-              </Typography>
-            )}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
 
             {col.items.map(task => (
-
               <Paper
                 key={task.id}
-                elevation={2}
                 onClick={() => navigate(`/tickets/${task.id}`)}
                 sx={{
                   p: 2,
                   borderRadius: 3,
                   cursor: "pointer",
+                  bgcolor: "background.paper",
                   transition: "0.2s",
-                  background: "#ffffff",
                   "&:hover": {
-                    transform: "translateY(-3px)",
-                    boxShadow: 4
+                    transform: "translateY(-3px)"
                   }
                 }}
               >
 
-                <Typography fontSize={12} color="#94a3b8">
+                <Typography fontSize={12} color="text.secondary">
                   {task.ticket_code}
                 </Typography>
 
-                <Typography fontWeight="bold" fontSize={14} sx={{ mb: 1 }}>
+                <Typography fontWeight={600} fontSize={14} sx={{ mb: 1 }}>
                   {task.title}
                 </Typography>
 
                 <Chip
-                  label={formatStatus(task.current_status)}
+                  label={task.current_status}
                   size="small"
                   sx={{
-                    background: getColor(task.current_status),
-                    color: "white",
-                    fontSize: 11
+                    bgcolor: getColor(task.current_status),
+                    color: "#fff"
                   }}
                 />
 
               </Paper>
-
             ))}
 
           </Box>
 
         </Box>
-
       ))}
 
     </Box>

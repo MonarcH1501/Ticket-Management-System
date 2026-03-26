@@ -25,16 +25,9 @@ export default function OverviewTab(){
   const [loading,setLoading] = useState(true)
 
   useEffect(()=>{
-
     const fetchData = async ()=>{
-
       try{
-
-        const [
-          summaryRes,
-          trendsRes,
-          recentRes
-        ] = await Promise.all([
+        const [summaryRes,trendsRes,recentRes] = await Promise.all([
           api.get("/tickets/summary"),
           api.get("/tickets/trends"),
           api.get("/tickets/recent")
@@ -45,18 +38,14 @@ export default function OverviewTab(){
         setRecent(recentRes.data)
 
       }catch(err){
-        console.error("Dashboard error:", err)
+        console.error(err)
       }finally{
         setLoading(false)
       }
-
     }
-
     fetchData()
-
   },[])
 
-  // ✅ LOADING CENTER
   if(loading){
     return(
       <Box
@@ -69,7 +58,7 @@ export default function OverviewTab(){
           gap:2
         }}
       >
-        <CircularProgress/>
+        <CircularProgress sx={{ color:"#6366f1" }}/>
         <Typography color="text.secondary">
           Loading dashboard...
         </Typography>
@@ -83,11 +72,10 @@ export default function OverviewTab(){
   const approval = summary?.my_action?.need_my_approval ?? 0
 
   return(
-
     <Box>
 
       {/* STATS */}
-      <Grid container spacing={3} sx={{ mb:3 }}>
+      <Grid container spacing={3} sx={{ mb:4 }}>
 
         <Grid item xs={12} md={3}>
           <StatCard
@@ -128,15 +116,17 @@ export default function OverviewTab(){
       </Grid>
 
       {/* CHART */}
-      <Box sx={{ mb:3 }}>
+      <Box
+        sx={{ mb: 4, p: 3, bgcolor: "background.paper", borderRadius: 3 }}
+      >
         <DashboardChart data={trends}/>
       </Box>
 
       {/* RECENT */}
-      <RecentTickets tickets={recent}/>
+      <Box sx={{ p: 3, bgcolor: "background.paper", borderRadius: 3 }}>
+        <RecentTickets tickets={recent}/>
+      </Box>
 
     </Box>
-
   )
-
 }

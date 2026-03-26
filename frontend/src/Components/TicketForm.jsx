@@ -1,281 +1,250 @@
-import { useState, useEffect } from "react"
-import api from "../api/axios"
+import { useState, useEffect } from "react";
+import api from "../api/axios";
 
 import {
-  Grid,
   TextField,
   Button,
   MenuItem,
   Typography,
   Box,
   Paper
-} from "@mui/material"
+} from "@mui/material";
 
 export default function TicketForm({ onSubmit, loading }) {
 
-  const [file,setFile] = useState(null)
+  const [file, setFile] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [categories, setCategories] = useState([]);
 
-  const [departments,setDepartments] = useState([])
-  const [categories,setCategories] = useState([])
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    department_id: "",
+    ticket_category_id: "",
+    priority: "medium",
+    due_date: ""
+  });
 
-  const [form,setForm] = useState({
-    title:"",
-    description:"",
-    department_id:"",
-    ticket_category_id:"",
-    priority:"medium",
-    due_date:""
-  })
-
-  useEffect(()=>{
-
+  useEffect(() => {
     api.get("/departments")
-      .then(res=>setDepartments(res.data))
+      .then(res => setDepartments(res.data));
+  }, []);
 
-  },[])
+  useEffect(() => {
+    if (!form.department_id) return;
 
-  useEffect(()=>{
-
-    if(!form.department_id) return
-
-    api.get("/ticket-categories",{
-      params:{ department_id:form.department_id }
+    api.get("/ticket-categories", {
+      params: { department_id: form.department_id }
     })
-    .then(res=>setCategories(res.data))
+    .then(res => setCategories(res.data));
 
-  },[form.department_id])
+  }, [form.department_id]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  const handleChange = (e)=>{
-
-    const {name,value} = e.target
-
-    setForm(prev=>({
+    setForm(prev => ({
       ...prev,
-      [name]:value,
-      ...(name==="department_id" && {ticket_category_id:""})
-    }))
+      [name]: value,
+      ...(name === "department_id" && { ticket_category_id: "" })
+    }));
+  };
 
-  }
-
-  const handleSubmit = (e)=>{
-    e.preventDefault()
-    onSubmit(form,file)
-  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(form, file);
+  };
 
   return (
 
-    <Grid container spacing={4}>
+    <Box sx={{ width: "100%" }}>
 
-      {/* LEFT PANEL */}
-      <Grid item xs={12} md={4}>
+      {/* 💡 MINI GUIDE */}
+      <Box
+        sx={{
+          mb: 3,
+          p: 2,
+          borderRadius: 2,
+          background: "#f1f5f9",
+          border: "1px solid #e2e8f0"
+        }}
+      >
+        <Typography fontSize={14} color="text.secondary">
+          💡 Submit a ticket  Process: approval Kepala Unit → Kepala Department → PIC work → review KD.
+        </Typography>
+      </Box>
 
-        <Paper
+      {/* 🔵 FORM */}
+      <Paper
+        sx={{
+          p: 4,
+          borderRadius: 4,
+          boxShadow: "0 10px 30px rgba(0,0,0,0.08)"
+        }}
+      >
+        <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
+          Create Ticket
+        </Typography>
+
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
           sx={{
-            p:4,
-            borderRadius:3,
-            background:"#f6f8fb"
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "1fr 1fr"
+            },
+            gap: 3
           }}
         >
 
-          <Typography variant="h6" sx={{ mb:2 }}>
-            Ticket Guide
-          </Typography>
-
-          <Typography variant="body2" sx={{ mb:2 }}>
-            Submit a ticket to request help from another department.
-          </Typography>
-
-          <Typography variant="body2">
-            1. Unit approval<br/>
-            2. Department approval<br/>
-            3. Assigned to PIC<br/>
-            4. Work in progress<br/>
-            5. Final review
-          </Typography>
-
-        </Paper>
-
-      </Grid>
-
-
-      {/* FORM PANEL */}
-      <Grid item xs={12} md={8}>
-
-        <Paper sx={{ p:4, borderRadius:3 }}>
-
-          <Typography variant="h5" sx={{ mb:3 }}>
-            Create Ticket
-          </Typography>
-
-          <Box component="form" onSubmit={handleSubmit}>
-
-            <Grid container spacing={3}>
-
-              {/* TITLE */}
-              <Grid item xs={12}>
-
-                <TextField
-                  label="Title"
-                  name="title"
-                  fullWidth
-                  value={form.title}
-                  onChange={handleChange}
-                />
-
-              </Grid>
-
-
-              {/* DEPARTMENT */}
-              <Grid item xs={12} md={6}>
-
-                <TextField
-                  label="Department"
-                  name="department_id"
-                  select
-                  fullWidth
-                  value={form.department_id}
-                  onChange={handleChange}
-                >
-
-                  {departments.map(dep=>(
-                    <MenuItem key={dep.id} value={dep.id}>
-                      {dep.name}
-                    </MenuItem>
-                  ))}
-
-                </TextField>
-
-              </Grid>
-
-
-              {/* CATEGORY */}
-              <Grid item xs={12} md={6}>
-
-                <TextField
-                  label="Category"
-                  name="ticket_category_id"
-                  select
-                  fullWidth
-                  disabled={!form.department_id}
-                  value={form.ticket_category_id}
-                  onChange={handleChange}
-                >
-
-                  {categories.map(cat=>(
-                    <MenuItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </MenuItem>
-                  ))}
-
-                </TextField>
-
-              </Grid>
-
-
-              {/* PRIORITY */}
-              <Grid item xs={12} md={6}>
-
-                <TextField
-                  label="Priority"
-                  name="priority"
-                  select
-                  fullWidth
-                  value={form.priority}
-                  onChange={handleChange}
-                >
-
-                  <MenuItem value="low">Low</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="high">High</MenuItem>
-
-                </TextField>
-
-              </Grid>
-
-
-              {/* DUE DATE */}
-              <Grid item xs={12} md={6}>
-
-                <TextField
-                  label="Due Date"
-                  name="due_date"
-                  type="date"
-                  fullWidth
-                  InputLabelProps={{ shrink:true }}
-                  value={form.due_date}
-                  onChange={handleChange}
-                />
-
-              </Grid>
-
-
-              {/* DESCRIPTION */}
-              <Grid item xs={12}>
-
-                <TextField
-                  label="Description"
-                  name="description"
-                  multiline
-                  rows={4}
-                  fullWidth
-                  value={form.description}
-                  onChange={handleChange}
-                />
-
-              </Grid>
-
-
-              {/* ATTACHMENT */}
-              <Grid item xs={12}>
-
-                <Button
-                  variant="outlined"
-                  component="label"
-                >
-                  Upload Attachment
-
-                  <input
-                    type="file"
-                    hidden
-                    onChange={(e)=>setFile(e.target.files[0])}
-                  />
-
-                </Button>
-
-                {file && (
-                  <Typography sx={{ mt:1 }}>
-                    {file.name}
-                  </Typography>
-                )}
-
-              </Grid>
-
-
-              {/* SUBMIT */}
-              <Grid item xs={12}>
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  disabled={loading}
-                >
-                  {loading ? "Creating..." : "Create Ticket"}
-                </Button>
-
-              </Grid>
-
-            </Grid>
-
+          {/* TITLE FULL */}
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Typography fontWeight={600} mb={1}>Title</Typography>
+            <TextField
+              name="title"
+              fullWidth
+              placeholder="Enter ticket title..."
+              value={form.title}
+              onChange={handleChange}
+              sx={{ background: "#fff", borderRadius: 2 }}
+            />
           </Box>
 
-        </Paper>
+          {/* DEPARTMENT */}
+          <Box>
+            <Typography fontWeight={600} mb={1}>Department</Typography>
+            <TextField
+              name="department_id"
+              select
+              fullWidth
+              value={form.department_id}
+              onChange={handleChange}
+              sx={{ background: "#fff", borderRadius: 2 }}
+            >
+              <MenuItem value="">Select Department</MenuItem>
+              {departments.map(dep => (
+                <MenuItem key={dep.id} value={dep.id}>
+                  {dep.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
-      </Grid>
+          {/* CATEGORY */}
+          <Box>
+            <Typography fontWeight={600} mb={1}>Category</Typography>
+            <TextField
+              name="ticket_category_id"
+              select
+              fullWidth
+              disabled={!form.department_id}
+              value={form.ticket_category_id}
+              onChange={handleChange}
+              sx={{ background: "#fff", borderRadius: 2 }}
+            >
+              <MenuItem value="">Select Category</MenuItem>
+              {categories.map(cat => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
-    </Grid>
+          {/* PRIORITY */}
+          <Box>
+            <Typography fontWeight={600} mb={1}>Priority</Typography>
+            <TextField
+              name="priority"
+              select
+              fullWidth
+              value={form.priority}
+              onChange={handleChange}
+              sx={{ background: "#fff", borderRadius: 2 }}
+            >
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="high">High</MenuItem>
+            </TextField>
+          </Box>
 
-  )
+          {/* DATE */}
+          <Box>
+            <Typography fontWeight={600} mb={1}>Due Date</Typography>
+            <TextField
+              name="due_date"
+              type="date"
+              fullWidth
+              value={form.due_date}
+              onChange={handleChange}
+              sx={{ background: "#fff", borderRadius: 2 }}
+            />
+          </Box>
 
+          {/* DESCRIPTION FULL */}
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Typography fontWeight={600} mb={1}>Description</Typography>
+            <TextField
+              name="description"
+              multiline
+              rows={4}
+              fullWidth
+              placeholder="Describe your issue..."
+              value={form.description}
+              onChange={handleChange}
+              sx={{ background: "#fff", borderRadius: 2 }}
+            />
+          </Box>
+
+          {/* ACTIONS FULL */}
+          <Box
+            sx={{
+              gridColumn: "1 / -1",
+              display: "flex",
+              gap: 2,
+              alignItems: "center"
+            }}
+          >
+            <Button
+              variant="outlined"
+              component="label"
+              sx={{ borderRadius: 2 }}
+            >
+              Upload Attachment
+              <input
+                type="file"
+                hidden
+                onChange={(e) => setFile(e.target.files[0])}
+              />
+            </Button>
+
+            {file && (
+              <Typography fontSize={13}>
+                {file.name}
+              </Typography>
+            )}
+
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              sx={{
+                borderRadius: 3,
+                px: 4,
+                py: 1.5,
+                background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                boxShadow: "0 6px 20px rgba(99,102,241,0.4)"
+              }}
+            >
+              {loading ? "Creating..." : "Create Ticket"}
+            </Button>
+          </Box>
+
+        </Box>
+      </Paper>
+
+    </Box>
+  );
 }

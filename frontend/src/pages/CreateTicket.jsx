@@ -57,7 +57,13 @@ export default function CreateTicket(){
 
   return(
 
-    <Box sx={{ maxWidth:1000 }}>
+    <Box
+        sx={{
+          maxWidth: 1100,
+          mx: "auto",
+          width: "100%"
+        }}
+      >
 
       <Typography
         variant="h4"
