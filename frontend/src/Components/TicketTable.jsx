@@ -1,6 +1,8 @@
 import { DataGrid } from "@mui/x-data-grid"
 import Chip from "@mui/material/Chip"
 import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
+import Stack from "@mui/material/Stack"
 
 function StatusBadge({ status }) {
 
@@ -14,9 +16,10 @@ function StatusBadge({ status }) {
 
   return (
     <Chip
-      label={status.replaceAll("_"," ")}
+      label={status.replaceAll("_", " ")}
       color={colors[status] || "default"}
       size="small"
+      sx={{ fontWeight: 500 }}
     />
   )
 }
@@ -24,9 +27,9 @@ function StatusBadge({ status }) {
 function PriorityBadge({ priority }) {
 
   const colors = {
-    low:"default",
-    medium:"warning",
-    high:"error"
+    low: "default",
+    medium: "warning",
+    high: "error"
   }
 
   return (
@@ -34,66 +37,140 @@ function PriorityBadge({ priority }) {
       label={priority}
       color={colors[priority] || "default"}
       size="small"
+      sx={{ textTransform: "capitalize" }}
     />
   )
 }
 
-const columns = [
+export default function TicketTable({ tickets, onView }) {
 
-  {
-    field:"ticket_code",
-    headerName:"Code",
-    width:150
-  },
+  const columns = [
 
-  {
-    field:"title",
-    headerName:"Title",
-    flex:1
-  },
+    {
+      field: "ticket_code",
+      headerName: "Code",
+      width: 150
+    },
 
-  {
-    field:"current_status",
-    headerName:"Status",
-    width:200,
-    renderCell:(params)=>(
-      <StatusBadge status={params.value}/>
-    )
-  },
+    {
+      field: "title",
+      headerName: "Title",
+      flex: 1
+    },
 
-  {
-    field:"priority",
-    headerName:"Priority",
-    width:140,
-    renderCell:(params)=>(
-      <PriorityBadge priority={params.value}/>
-    )
-  }
+    {
+      field: "current_status",
+      headerName: "Status",
+      width: 220,
+      renderCell: (params) => (
+        <StatusBadge status={params.value} />
+      )
+    },
 
-]
+    {
+      field: "priority",
+      headerName: "Priority",
+      width: 140,
+      renderCell: (params) => (
+        <PriorityBadge priority={params.value} />
+      )
+    },
 
-export default function TicketTable({ tickets }) {
+    {
+      field: "actions",
+      headerName: "Action",
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Stack
+          direction="row"
+          alignItems="center"
+          sx={{ width: "100%" }}
+        >
+          <Button
+            variant="text"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation()
+              onView(params.row.id)
+            }}
+            sx={{
+              textTransform: "none",
+              fontWeight: 500,
+              color: "#2563eb",
+              minWidth: "auto",
+              padding: 0,
+              "&:hover": {
+                background: "transparent",
+                textDecoration: "underline"
+              }
+            }}
+          >
+            Detail
+          </Button>
+        </Stack>
+      )
+    }
+
+  ]
 
   return (
 
-    <Box sx={{ height:500, width:"100%" }}>
+    <Box sx={{ width: "100%" }}>
 
       <DataGrid
         rows={tickets}
         columns={columns}
-        pageSizeOptions={[5,10]}
+        autoHeight
+        pageSizeOptions={[5, 10, 20]}
         disableRowSelectionOnClick
+        onRowClick={(params) => onView(params.row.id)}
+
         sx={{
 
-          border:0,
+          border: 0,
+          borderRadius: 3,
 
-          "& .MuiDataGrid-columnHeaders":{
-            background:"#f5f7fa",
-            fontWeight:600
+          // HEADER
+          "& .MuiDataGrid-columnHeaders": {
+            background: "#f8fafc",
+            fontWeight: 600
           },
 
-          "& .MuiDataGrid-row:hover":{
-            background:"#f9fbfd"
+          // ROW
+          "& .MuiDataGrid-row": {
+            transition: "0.2s"
+          },
+
+          "& .MuiDataGrid-row:hover": {
+            background: "#f1f5f9",
+            cursor: "pointer"
+          },
+
+          // ✅ FIX: CENTER SEMUA ISI
+          "& .MuiDataGrid-cell": {
+            display: "flex",
+            alignItems: "center",
+            borderBottom: "1px solid #f1f5f9"
+          },
+
+          // REMOVE BLUE OUTLINE
+          "& .MuiDataGrid-cell:focus": {
+            outline: "none"
+          },
+
+          "& .MuiDataGrid-cell:focus-within": {
+            outline: "none"
+          },
+
+          // REMOVE SELECT EFFECT
+          "& .MuiDataGrid-row.Mui-selected": {
+            background: "transparent !important"
+          },
+
+          // ACTION COLUMN GA IKUT HOVER
+          "& .MuiDataGrid-row:hover .MuiDataGrid-cell:last-child": {
+            background: "transparent"
           }
 
         }}
