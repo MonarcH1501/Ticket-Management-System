@@ -60,7 +60,7 @@ class DepartmentApprovalService
             // Untuk sekarang kita kosongkan dulu approver
             // nanti bisa assign otomatis PIC
             $ticket->update([
-                'current_approver_id' => null
+                'current_approver_id' => $approver->id, // tetap set ke approver, nanti di assign PIC baru di update lagi
             ]);
 
             return $ticket;

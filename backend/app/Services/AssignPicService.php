@@ -17,9 +17,10 @@ class AssignPicService
         return DB::transaction(function () use ($assigner, $ticket, $picId) {
             // memastikan status benar
             if ($ticket->current_status !== TicketStatus::ASSIGNED_TO_PIC) {
-                throw new LogicException(
-                    'Ticket tidak berada pada tahap assign PIC.'
-                );
+                throw new LogicException('Bukan tahap assign PIC');
+            }
+            if ($ticket->pic_id !== null) {
+                throw new LogicException('PIC sudah ditentukan');
             }
 
             // 2️⃣ Ambil PIC yang valid (harus role pic & department sama)
@@ -58,3 +59,5 @@ class AssignPicService
         });
     }
 }
+
+

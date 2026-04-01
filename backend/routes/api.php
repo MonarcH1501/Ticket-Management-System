@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\DepartmentReviewController;
 use App\Http\Controllers\Api\TicketAttachmentController;
 use App\Http\Controllers\Api\TicketAnalyticsController;
 use App\Http\Controllers\Api\LookupController;
-
+use App\Http\Controllers\Api\UserController;
 
    Route::post('/login', [AuthController::class, 'login']);
 
@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\LookupController;
         Route::post('/tickets/{ticket}/attachments', [TicketAttachmentController::class, 'store']);
         
         //Route Get
+        Route::get('/users', [UserController::class, 'index']);
         Route::get('/tickets/summary', [TicketAnalyticsController::class, 'summary']);
         Route::get('/tickets/metrics', [TicketAnalyticsController::class, 'metrics']);
         Route::get('/tickets/trends', [TicketAnalyticsController::class, 'trends']);
@@ -50,7 +51,7 @@ use App\Http\Controllers\Api\LookupController;
         });
 
         // Assign PIC
-        Route::middleware('permission:assign_pic')->group(function () {
+        Route::middleware('permission:assign_pic')->group(function () { 
             Route::post('/tickets/{ticket}/assign-pic', [AssignPicController::class, 'handle']);
         });
 

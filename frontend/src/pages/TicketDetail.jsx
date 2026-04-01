@@ -64,14 +64,14 @@ export default function TicketDetail() {
   // Fetch current user data
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const res = await api.get('/auth/me') // Sesuaikan dengan endpoint user profile Anda
+      const res = await api.get('/user') // Sesuaikan dengan endpoint user profile Anda
       setCurrentUser(res.data.data ?? res.data)
     } catch (err) {
       console.error("Failed to fetch current user:", err)
     }
   }, [])
 
-  // Check if current user can approve this ticket
+    // Check if current user can approve this ticket
   const checkCanApprove = useCallback(() => {
     if (!ticket || !currentUser) return false
 
@@ -83,7 +83,7 @@ export default function TicketDetail() {
     // 2. User adalah approver yang ditunjuk (current_approver_id)
     // 3. Atau user memiliki role yang sesuai (kepala_unit/kepala_department)
     
-    const isWaitingApproval = status === 'waiting_approval' || 
+    const isWaitingApproval = status === 'waiting_unit_approval' || 
                               status === 'waiting_department_approval'
     
     const isDesignatedApprover = ticket.current_approver_id === currentUser.id
@@ -429,7 +429,7 @@ export default function TicketDetail() {
           {/* Right Column - Actions & Workflow */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Actions Card - Only show if user can approve */}
-            {canApprove && (
+            {(canApprove || ticket.current_status === "assigned_to_pic") && (
               <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0e0e0", position: "sticky", top: 20 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>

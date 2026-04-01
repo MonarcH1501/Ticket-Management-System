@@ -5,206 +5,199 @@ import {
   Button,
   Stack,
   Typography,
-  Chip,
-  Divider,
-  CircularProgress,
+  Alert,
   TextField,
-  MenuItem,
-  Avatar
+  MenuItem
 } from "@mui/material"
-import {
-  CheckCircle,
-  Cancel,
-  AssignmentInd
-} from "@mui/icons-material"
 import api from "../api/axios"
 
 export default function TicketActions({ ticket, refresh }) {
 
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false) 
+  const [error, setError] = useState(null)
 
-  const [users, setUsers] = useState([])
+  const [pics, setPics] = useState([])
   const [selectedPic, setSelectedPic] = useState("")
 
+  // ================= USER =================
   useEffect(() => {
-    api.get("/user").then(res => setUser(res.data))
-
-    // ambil list user (PIC candidates)
-    api.get("/users")
-      .then(res => setUsers(res.data))
-      .catch(() => setUsers([]))
+    api.get("/user")
+      .then(res => setUser(res.data))
+      .catch(err => console.error(err))
   }, [])
 
-  if (!user) return null
+  // ================= PIC =================
+  useEffect(() => {
+    const deptId = ticket?.department?.id
+
+    if (!deptId) return
+
+    api.get(`/users?role=pic&department_id=${deptId}`)
+      .then(res => {
+        setPics(res.data.data ?? res.data) // 🔥 FIX
+      })
+      .catch(err => console.error(err))
+
+  }, [ticket])
 
   const handleAction = async (url, data = {}) => {
     setLoading(true)
+    setError(null)
+
     try {
       await api.post(url, data)
       refresh()
+    } catch (err) {
+      console.error(err)
+      setError(err.response?.data?.message || "Action failed")
     } finally {
       setLoading(false)
     }
   }
 
-  const status = ticket.current_status?.toUpperCase()
 
+  // ================= LOGIC =================
+const status = (ticket.current_status || "").toLowerCase()
+
+const isApprover =
+  Number(user?.id) === Number(ticket.current_approver_id)
+
+const isUnit = status === "waiting_unit_approval"
+const isDept = status === "waiting_department_approval"
+const isAssignPic = status === "assigned_to_pic"
+
+// 🔥 DEBUG WAJIB
+console.log("=== DEBUG TICKET ACTIONS ===")
+console.log({
+  userId: user?.id,
+  approver: ticket.current_approver_id,
+  status: ticket.current_status,
+  statusLower: status,
+  isApprover,
+  isAssignPic,
+  pics,
+  ticket
+})
   return (
-    <Card sx={{ borderRadius: 3, border: "1px solid #e0e0e0" }}>
+    <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
       <CardContent>
 
-        <Stack spacing={3}>
+        <Stack spacing={2}>
 
-          {/* HEADER */}
-          <Box>
-            <Typography fontWeight={600}>
-              🎯 Actions
-            </Typography>
-            <Typography fontSize={13} color="text.secondary">
-              Manage this ticket
-            </Typography>
-          </Box>
+          <Typography fontWeight={600}>
+            Actions
+          </Typography>
+
+          {error && <Alert severity="error">{error}</Alert>}
+
+          {!isApprover && (
+            <Alert severity="info">
+              You are not assigned as approver for this ticket
+            </Alert>
+          )}
 
           {/* ================= UNIT ================= */}
-          {status === "WAITING_UNIT_APPROVAL"
-            && user.id === ticket.current_approver_id && (
+          {isApprover && isUnit && (
+            <>
+              <Typography fontSize={13} color="text.secondary">
+                Waiting Unit Approval
+              </Typography>
 
-              <Stack spacing={1.5}>
+              <Button
+                variant="contained"
+                disabled={loading}
+                onClick={() =>
+                  handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "approve" })
+                }
+              >
+                {loading ? "Processing..." : "Approve"}
+              </Button>
 
-                <Chip label="Unit Approval" size="small" sx={{ bgcolor: "#fff4e5" }} />
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<CheckCircle />}
-                  disabled={loading}
-                  onClick={() =>
-                    handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "approve" })
-                  }
-                >
-                  {loading ? <CircularProgress size={20} /> : "Approve"}
-                </Button>
-
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Cancel />}
-                  disabled={loading}
-                  onClick={() =>
-                    handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "reject" })
-                  }
-                >
-                  Reject
-                </Button>
-
-              </Stack>
-            )}
+              <Button
+                variant="outlined"
+                color="error"
+                disabled={loading}
+                onClick={() =>
+                  handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "reject" })
+                }
+              >
+                Reject
+              </Button>
+            </>
+          )}
 
           {/* ================= DEPARTMENT ================= */}
-          {status === "WAITING_DEPARTMENT_APPROVAL"
-            && user.id === ticket.current_approver_id && (
+          {isApprover && isDept && (
+            <>
+              <Typography fontSize={13} color="text.secondary">
+                Waiting Department Approval
+              </Typography>
 
-              <Stack spacing={2}>
+              <Button
+                variant="contained"
+                disabled={loading}
+                onClick={() =>
+                  handleAction(`/tickets/${ticket.id}/department-approval`, { action: "approve" })
+                }
+              >
+                {loading ? "Processing..." : "Approve"}
+              </Button>
 
-                <Chip label="Department Approval" size="small" sx={{ bgcolor: "#fff4e5" }} />
+              <Button
+                variant="outlined"
+                color="error"
+                disabled={loading}
+                onClick={() =>
+                  handleAction(`/tickets/${ticket.id}/department-approval`, { action: "reject" })
+                }
+              >
+                Reject
+              </Button>
+            </>
+          )}
 
-                {/* APPROVE */}
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<CheckCircle />}
-                  disabled={loading}
-                  onClick={() =>
-                    handleAction(`/tickets/${ticket.id}/department-approval`, { action: "approve" })
-                  }
-                >
-                  Approve
-                </Button>
+          {/* ================= ASSIGN PIC ================= */}
+          {isApprover && isAssignPic && (
+            <>
+              <Typography fontSize={13} color="text.secondary">
+                Assign PIC
+              </Typography>
 
-                {/* REJECT */}
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Cancel />}
-                  disabled={loading}
-                  onClick={() =>
-                    handleAction(`/tickets/${ticket.id}/department-approval`, { action: "reject" })
-                  }
-                >
-                  Reject
-                </Button>
+              <TextField
+                select
+                fullWidth
+                value={selectedPic}
+                onChange={(e) => setSelectedPic(e.target.value)}
+              >
+                <MenuItem value="" disabled>
+                  Select PIC
+                </MenuItem>
 
-                <Divider />
+                {pics.length === 0 && (
+                  <MenuItem disabled>No PIC available</MenuItem>
+                )}
 
-                {/* 🔥 ASSIGN PIC */}
-                <Stack spacing={1.5}>
+                {pics.map(pic => (
+                  <MenuItem key={pic.id} value={pic.id}>
+                    {pic.name}
+                  </MenuItem>
+                ))}
+              </TextField>
 
-                  <Typography fontSize={13} fontWeight={500}>
-                    Assign PIC
-                  </Typography>
-
-                  {/* Current PIC */}
-                  {ticket.pic && (
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Avatar sx={{ width: 28, height: 28 }}>
-                        {ticket.pic.name[0]}
-                      </Avatar>
-                      <Typography fontSize={13}>
-                        Current: {ticket.pic.name}
-                      </Typography>
-                    </Stack>
-                  )}
-
-                  {/* Dropdown */}
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    value={selectedPic}
-                    onChange={(e) => setSelectedPic(e.target.value)}
-                  >
-                    {users.map((u) => (
-                      <MenuItem key={u.id} value={u.id}>
-                        {u.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-
-                  {/* Assign Button */}
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<AssignmentInd />}
-                    disabled={!selectedPic || loading}
-                    onClick={() =>
-                      handleAction(`/tickets/${ticket.id}/assign-pic`, {
-                        pic_id: selectedPic
-                      })
-                    }
-                    sx={{
-                      bgcolor: "#6366f1",
-                      "&:hover": { bgcolor: "#4f46e5" }
-                    }}
-                  >
-                    Assign PIC
-                  </Button>
-
-                </Stack>
-
-              </Stack>
-            )}
-
-          {/* ================= NO ACTION ================= */}
-          {![
-            "WAITING_UNIT_APPROVAL",
-            "WAITING_DEPARTMENT_APPROVAL"
-          ].includes(status) && (
-            <Typography fontSize={13} color="text.secondary">
-              No actions required
-            </Typography>
+              <Button
+                variant="contained"
+                disabled={loading || !selectedPic}
+                onClick={() =>
+                  handleAction(
+                    `/tickets/${ticket.id}/assign-pic`,
+                    { pic_id: selectedPic }
+                  )
+                }
+              >
+                {loading ? "Assigning..." : "Assign PIC"}
+              </Button>
+            </>
           )}
 
         </Stack>

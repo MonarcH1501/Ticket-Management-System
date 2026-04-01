@@ -139,12 +139,22 @@ export default function TicketForm({ onSubmit, loading }) {
               name="ticket_category_id"
               select
               fullWidth
+              helperText={!form.department_id ? "Please choose department first" : ""}
               disabled={!form.department_id}
               value={form.ticket_category_id}
               onChange={handleChange}
               sx={{ background: "#fff", borderRadius: 2 }}
             >
-              <MenuItem value="">Select Category</MenuItem>
+              {!form.department_id ? (
+                <MenuItem value="" disabled>
+                  Select department first
+                </MenuItem>
+              ) : (
+                <MenuItem value="" disabled>
+                  Select Category
+                </MenuItem>
+              )}
+
               {categories.map(cat => (
                 <MenuItem key={cat.id} value={cat.id}>
                   {cat.name}
