@@ -15,7 +15,8 @@ class DepartmentReviewController extends Controller
         DepartmentReviewService $service
     ) {
         $validated = $request->validate([
-            'action' => 'required|in:approve,reject'
+            'action' => 'required|in:approve,reject',
+            'notes' => 'nullable|string'
         ]);
 
         $ticket = $service->handle(

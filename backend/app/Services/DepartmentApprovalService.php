@@ -16,7 +16,7 @@ class DepartmentApprovalService
     {
         return DB::transaction(function () use ($approver, $ticket, $data) {
 
-            // memastikan memang tahap department
+            // ================= VALIDATION =================
             if ($ticket->current_status !== TicketStatus::WAITING_DEPARTMENT_APPROVAL) {
                 throw new LogicException(
                     'Ticket tidak berada pada tahap approval kepala department.'
@@ -29,22 +29,26 @@ class DepartmentApprovalService
                 );
             }
 
-            // 1️⃣ Simpan histori approval
+            $workflow = app(TicketWorkflow::class);
+
+            // ================= STATUS MAP =================
+            $statusMap = [
+                'approve' => 'department_approved',
+                'reject'  => 'department_rejected',
+            ];
+
+            // ================= CREATE APPROVAL =================
             TicketApproval::create([
                 'ticket_id'   => $ticket->id,
                 'approved_by' => $approver->id,
                 'role_as'     => 'kepala_department',
-                'status'      => $data['action'] === 'approve'
-                                    ? 'approved'
-                                    : 'rejected',
+                'status'      => $statusMap[$data['action']] ?? 'unknown',
                 'notes'       => $data['notes'] ?? null,
                 'approved_at' => now(),
             ]);
 
-            $workflow = app(TicketWorkflow::class);
-
-            // 2️⃣ Jika reject
             if ($data['action'] === 'reject') {
+
                 $workflow->transition($ticket, TicketStatus::REJECTED);
 
                 $ticket->update([
@@ -54,13 +58,11 @@ class DepartmentApprovalService
                 return $ticket;
             }
 
-            // 3️⃣ Jika approve → assign ke PIC
+            // ================= APPROVE → ASSIGN PIC =================
             $workflow->transition($ticket, TicketStatus::ASSIGNED_TO_PIC);
 
-            // Untuk sekarang kita kosongkan dulu approver
-            // nanti bisa assign otomatis PIC
             $ticket->update([
-                'current_approver_id' => $approver->id, // tetap set ke approver, nanti di assign PIC baru di update lagi
+                'current_approver_id' => null 
             ]);
 
             return $ticket;

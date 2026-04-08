@@ -16,25 +16,49 @@ class UnitApprovalService
     {
         return DB::transaction(function () use ($approver, $ticket, $data) {
 
-            TicketApproval::create([
-                'ticket_id' => $ticket->id,
-                'approved_by' => $approver->id,
-                'role_as' => 'kepala_unit',
-                'status' => $data['action'] === 'approve'
-                    ? 'approved'
-                    : 'rejected',
-                'notes' => $data['notes'] ?? null,
-                'approved_at' => now(),
-            ]);
+            // ================= VALIDATION =================
+            if ($ticket->current_status !== TicketStatus::WAITING_UNIT_APPROVAL) {
+                throw new LogicException(
+                    'Ticket tidak berada pada tahap approval unit.'
+                );
+            }
+
+            if ($ticket->current_approver_id !== $approver->id) {
+                throw new LogicException(
+                    'Anda bukan approver ticket ini.'
+                );
+            }
 
             $workflow = app(\App\Workflows\TicketWorkflow::class);
 
+            // ================= STATUS MAP =================
+            $statusMap = [
+                'approve' => 'unit_approved',
+                'reject'  => 'unit_rejected',
+            ];
+
+            // ================= CREATE APPROVAL =================
+            TicketApproval::create([
+                'ticket_id'   => $ticket->id,
+                'approved_by' => $approver->id,
+                'role_as'     => 'kepala_unit',
+                'status'      => $statusMap[$data['action']] ?? 'unknown',
+                'notes'       => $data['notes'] ?? null,
+                'approved_at' => now(),
+            ]);
+
+            // ================= REJECT =================
             if ($data['action'] === 'reject') {
                 $workflow->transition($ticket, TicketStatus::REJECTED);
-                $ticket->update(['current_approver_id' => null]);
+
+                $ticket->update([
+                    'current_approver_id' => null
+                ]);
+
                 return $ticket;
             }
 
+            // ================= APPROVE → NEXT =================
             $nextApprover = $this->getDepartmentHead($ticket);
 
             $workflow->transition(

@@ -11,11 +11,13 @@ use LogicException;
 
 class SubmitTicketController extends Controller
 {
-     public function handle(Ticket $ticket)
+     public function handle(Request $request, Ticket $ticket)
     {
         try {
             $ticket = app(SubmitTicketService::class)
-                ->handle(auth()->user(), $ticket);
+                ->handle(auth()->user(), 
+                $ticket,
+                $request->file('file'));
 
             return response()->json([
                 'message' => 'Ticket berhasil disubmit untuk review.',

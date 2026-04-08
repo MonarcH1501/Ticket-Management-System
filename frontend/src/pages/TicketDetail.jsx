@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import api from "../api/axios"
 
 import {
@@ -8,12 +8,10 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Divider,
   Stack,
   Avatar,
   IconButton,
-  Tooltip,
   Paper,
   LinearProgress,
   Alert,
@@ -22,7 +20,6 @@ import {
 
 import {
   ArrowBack,
-  AttachFile,
   AccessTime,
   Flag,
   Person,
@@ -31,8 +28,7 @@ import {
   CheckCircle,
   Schedule,
   Timeline,
-  Description,
-  Download
+  Description
 } from "@mui/icons-material"
 
 import TicketActions from "../Components/TicketActions"
@@ -44,8 +40,7 @@ export default function TicketDetail() {
   const [ticket, setTicket] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [currentUser, setCurrentUser] = useState(null) // State untuk user saat ini
-  const [canApprove, setCanApprove] = useState(false) // State untuk mengecek akses approve
+  const [currentUser, setCurrentUser] = useState(null)
 
   const fetchTicket = useCallback(async () => {
     try {
@@ -61,91 +56,79 @@ export default function TicketDetail() {
     }
   }, [id])
 
-  // Fetch current user data
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const res = await api.get('/user') // Sesuaikan dengan endpoint user profile Anda
+      const res = await api.get("/user")
       setCurrentUser(res.data.data ?? res.data)
     } catch (err) {
       console.error("Failed to fetch current user:", err)
     }
   }, [])
 
-    // Check if current user can approve this ticket
-  const checkCanApprove = useCallback(() => {
+  useEffect(() => {
+    fetchCurrentUser()
+    fetchTicket()
+  }, [fetchCurrentUser, fetchTicket])
+
+  // ================= MERGED LOGIC =================
+  const status = (ticket?.current_status || "").toLowerCase()
+
+  // Check if current user is an approver (from second version's checkCanApprove logic)
+  const isApprover = useMemo(() => {
     if (!ticket || !currentUser) return false
 
-    // Cek berdasarkan status ticket dan user role
-    const status = ticket.current_status?.toLowerCase()
-    
-    // User dapat approve jika:
-    // 1. Status ticket adalah waiting approval atau waiting department approval
-    // 2. User adalah approver yang ditunjuk (current_approver_id)
-    // 3. Atau user memiliki role yang sesuai (kepala_unit/kepala_department)
-    
     const isWaitingApproval = status === 'waiting_unit_approval' || 
                               status === 'waiting_department_approval'
     
     const isDesignatedApprover = ticket.current_approver_id === currentUser.id
     
-    // Cek apakah user memiliki role yang sesuai berdasarkan approvals yang pending
     const hasPendingApprovalRole = ticket.approvals?.some(approval => 
       approval.status === 'pending' && 
       approval.approver?.id === currentUser.id
     )
     
     return isWaitingApproval && (isDesignatedApprover || hasPendingApprovalRole)
+  }, [ticket, currentUser, status])
+
+  // Check if current user is PIC
+  const isPIC = useMemo(() => {
+    return Number(currentUser?.id) === Number(ticket?.pic_id || ticket?.pic?.id)
   }, [ticket, currentUser])
 
-  useEffect(() => {
-    fetchCurrentUser()
-  }, [fetchCurrentUser])
+  // STATUS FLAGS (from first version)
+  const isUnit = status === "waiting_unit_approval"
+  const isDept = status === "waiting_department_approval"
+  const isAssignPic = status === "assigned_to_pic"
+  const isInProgress = status === "in_progress"
+  const isDeptReview = status === "waiting_department_review"
 
-  useEffect(() => {
-    if (ticket && currentUser) {
-      setCanApprove(checkCanApprove())
-    }
-  }, [ticket, currentUser, checkCanApprove])
+  // FINAL VISIBILITY (combining both versions' conditions)
+  const canShowActions = useMemo(() => {
+    // From first version's logic
+    const firstVersionCondition = 
+      (isApprover && (isUnit || isDept || isAssignPic || isDeptReview)) ||
+      (isPIC && isInProgress)
+    
+    // From second version's inline condition (includes assigned_to_pic and waiting_department_review)
+    const secondVersionCondition = 
+      isApprover ||
+      status === "assigned_to_pic" ||
+      (status === "in_progress" && isPIC) ||
+      status === "waiting_department_review"
+    
+    // Return true if either condition is met (merged)
+    return firstVersionCondition || secondVersionCondition
+  }, [isApprover, isPIC, isUnit, isDept, isAssignPic, isInProgress, isDeptReview, status])
 
-  useEffect(() => {
-    fetchTicket()
-  }, [fetchTicket])
+  console.log("=== FINAL CHECK PARENT (MERGED) ===", {
+    status,
+    userId: currentUser?.id,
+    isApprover,
+    isPIC,
+    canShowActions
+  })
 
-  const getStatusConfig = (status) => {
-    const s = status?.toLowerCase()
-    const configs = {
-      waiting_approval: { color: "#ed6c02", bg: "#fff4e5", icon: <Schedule sx={{ fontSize: 14 }} />, label: "Waiting Approval" },
-      waiting_department_approval: { color: "#ed6c02", bg: "#fff4e5", icon: <Schedule sx={{ fontSize: 14 }} />, label: "Waiting Department Approval" },
-      in_progress: { color: "#0288d1", bg: "#e3f2fd", icon: <Timeline sx={{ fontSize: 14 }} />, label: "In Progress" },
-      done: { color: "#2e7d32", bg: "#e8f5e9", icon: <CheckCircle sx={{ fontSize: 14 }} />, label: "Done" },
-      rejected: { color: "#d32f2f", bg: "#ffebee", icon: <Flag sx={{ fontSize: 14 }} />, label: "Rejected" }
-    }
-    return configs[s] || { color: "#757575", bg: "#f5f5f5", icon: null, label: s?.replace(/_/g, " ") || "Unknown" }
-  }
-
-  const formatDate = (date) => {
-    if (!date) return "-"
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    })
-  }
-
-  const getPriorityColor = (priority) => {
-    const p = priority?.toLowerCase()
-    if (p === "high") return "#d32f2f"
-    if (p === "medium") return "#ed6c02"
-    if (p === "low") return "#2e7d32"
-    return "#757575"
-  }
-
-  const getPriorityIcon = (priority) => {
-    const p = priority?.toLowerCase()
-    if (p === "high") return <Flag sx={{ fontSize: 16 }} />
-    if (p === "medium") return <Flag sx={{ fontSize: 16 }} />
-    return <Flag sx={{ fontSize: 16 }} />
-  }
+  // ================= UI (KEPT INTACT) =================
 
   if (loading) {
     return (
@@ -173,6 +156,42 @@ export default function TicketDetail() {
         </Button>
       </Box>
     )
+  }
+
+  const getStatusConfig = (status) => {
+    const s = status?.toLowerCase()
+    const configs = {
+      waiting_approval: { color: "#ed6c02", bg: "#fff4e5", icon: <Schedule sx={{ fontSize: 14 }} />, label: "Waiting Approval" },
+      waiting_unit_approval: { color: "#ed6c02", bg: "#fff4e5", icon: <Schedule sx={{ fontSize: 14 }} />, label: "Waiting Unit Approval" },
+      waiting_department_approval: { color: "#ed6c02", bg: "#fff4e5", icon: <Schedule sx={{ fontSize: 14 }} />, label: "Waiting Department Approval" },
+      assigned_to_pic: { color: "#0288d1", bg: "#e3f2fd", icon: <Person sx={{ fontSize: 14 }} />, label: "Assigned to PIC" },
+      in_progress: { color: "#0288d1", bg: "#e3f2fd", icon: <Timeline sx={{ fontSize: 14 }} />, label: "In Progress" },
+      waiting_department_review: { color: "#ed6c02", bg: "#fff4e5", icon: <Schedule sx={{ fontSize: 14 }} />, label: "Waiting Department Review" },
+      done: { color: "#2e7d32", bg: "#e8f5e9", icon: <CheckCircle sx={{ fontSize: 14 }} />, label: "Done" },
+      rejected: { color: "#d32f2f", bg: "#ffebee", icon: <Flag sx={{ fontSize: 14 }} />, label: "Rejected" }
+    }
+    return configs[s] || { color: "#757575", bg: "#f5f5f5", icon: null, label: s?.replace(/_/g, " ") || "Unknown" }
+  }
+
+  const formatDate = (date) => {
+    if (!date) return "-"
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    })
+  }
+
+  const getPriorityColor = (priority) => {
+    const p = priority?.toLowerCase()
+    if (p === "high") return "#d32f2f"
+    if (p === "medium") return "#ed6c02"
+    if (p === "low") return "#2e7d32"
+    return "#757575"
+  }
+
+  const getPriorityIcon = () => {
+    return <Flag sx={{ fontSize: 16 }} />
   }
 
   const statusConfig = getStatusConfig(ticket.current_status)
@@ -428,8 +447,8 @@ export default function TicketDetail() {
 
           {/* Right Column - Actions & Workflow */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* Actions Card - Only show if user can approve */}
-            {(canApprove || ticket.current_status === "assigned_to_pic") && (
+            {/* Actions Card - Using merged canShowActions */}
+            {canShowActions && (
               <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0e0e0", position: "sticky", top: 20 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
