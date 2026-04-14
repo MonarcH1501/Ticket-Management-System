@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "ticketmanagementsystem.rf.gd/api",
+  baseURL: "https://ticketmanagementsystem.rf.gd/api",
 });
 
 api.interceptors.request.use((config) => {
