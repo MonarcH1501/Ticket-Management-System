@@ -20,15 +20,23 @@ import AddIcon from "@mui/icons-material/Add";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 export default function Sidebar({ collapsed, setCollapsed, drawerWidth }) {
-  const { logout } = useContext(AuthContext);
+  const { logout, user } = useContext(AuthContext);
+  const isAdmin = user?.roles?.some(r => r.name === 'admin' || r.name === 'superadmin');
 
-  const menus = [
+  const baseMenus = [
     { label: "Dashboard", path: "/", icon: <DashboardIcon /> },
     { label: "All Tickets", path: "/tickets/alltickets", icon: <ConfirmationNumberIcon /> },
     { label: "Create Ticket", path: "/tickets/create", icon: <AddIcon /> }
   ];
+
+  const adminMenus = isAdmin ? [
+    { label: "Admin", path: "/admin", icon: <AdminPanelSettingsIcon /> }
+  ] : [];
+
+  const menus = [...baseMenus, ...adminMenus];
 
   return (
     <Drawer
