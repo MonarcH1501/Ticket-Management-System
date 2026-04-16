@@ -13,7 +13,7 @@ use LogicException;
 class DepartmentReviewService
 {
     public function handle(User $reviewer, Ticket $ticket, array $data): Ticket
-    {
+    {   
         return DB::transaction(function () use ($reviewer, $ticket, $data) {
 
             // ================= VALIDATION =================

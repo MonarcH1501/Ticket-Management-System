@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://ticketmanagementsystem.rf.gd/api",
+  baseURL: "https://fwd-fell-skills-switching.trycloudflare.com/api",
 });
 
 api.interceptors.request.use((config) => {

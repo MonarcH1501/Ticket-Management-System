@@ -5,8 +5,7 @@ export default function GoogleCallback() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Ambil token dan user dari query parameter
+  useEffect(() => { 
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get("token");
     const user = JSON.parse(urlParams.get("user"));

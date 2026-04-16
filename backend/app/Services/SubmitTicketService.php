@@ -61,7 +61,6 @@ class SubmitTicketService
                 TicketStatus::WAITING_DEPARTMENT_REVIEW
             );
 
-            // ================= SET APPROVER =================
             $departmentHead = User::find($ticket->department->head_id);
 
             if (! $departmentHead) {
