@@ -49,7 +49,7 @@ class TicketWorkflowTimelineService
             'unit_approval' => match ($ticket->status) {
                 TicketStatus::WAITING_UNIT_APPROVAL => 'current',
                 TicketStatus::WAITING_DEPARTMENT_APPROVAL,
-                TicketStatus::ASSIGNED_TO_PIC,
+                TicketStatus::WAITING_PIC_ASSIGNED,
                 TicketStatus::IN_PROGRESS,
                 TicketStatus::WAITING_DEPARTMENT_REVIEW,
                 TicketStatus::COMPLETED,
@@ -59,7 +59,7 @@ class TicketWorkflowTimelineService
 
             'department_approval' => match ($ticket->status) {
                 TicketStatus::WAITING_DEPARTMENT_APPROVAL => 'current',
-                TicketStatus::ASSIGNED_TO_PIC,
+                TicketStatus::WAITING_PIC_ASSIGNED,
                 TicketStatus::IN_PROGRESS,
                 TicketStatus::WAITING_DEPARTMENT_REVIEW,
                 TicketStatus::COMPLETED,
@@ -68,7 +68,7 @@ class TicketWorkflowTimelineService
             },
 
             'pic_work' => match ($ticket->status) {
-                TicketStatus::ASSIGNED_TO_PIC,
+                TicketStatus::WAITING_PIC_ASSIGNED,
                 TicketStatus::IN_PROGRESS => 'current',
                 TicketStatus::WAITING_DEPARTMENT_REVIEW,
                 TicketStatus::COMPLETED,

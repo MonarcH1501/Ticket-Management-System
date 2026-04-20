@@ -16,7 +16,7 @@ class AssignPicService
     {
         return DB::transaction(function () use ($assigner, $ticket, $picId) {
             // memastikan status benar
-            if ($ticket->current_status !== TicketStatus::ASSIGNED_TO_PIC) {
+            if ($ticket->current_status !== TicketStatus::WAITING_PIC_ASSIGNED) {
                 throw new LogicException('Bukan tahap assign PIC');
             }
             if ($ticket->pic_id !== null) {
@@ -39,7 +39,7 @@ class AssignPicService
                 'ticket_id'   => $ticket->id,
                 'approved_by' => $assigner->id,
                 'role_as'     => 'kepala_department',
-                'status'      => 'assigned_pic',
+                'status'      => 'menunggu pic di tetapkan',
                 'notes'       => 'PIC assigned to user ID: ' . $pic->id,
                 'approved_at' => now(),
             ]);

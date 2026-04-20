@@ -16,6 +16,7 @@ import TicketTable from "../Components/TicketTable"
 export default function TicketList() {
 
   const [tickets, setTickets] = useState([])
+  const [filter, setFilter] = useState("UNCOMPLETED") // default
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -27,6 +28,14 @@ export default function TicketList() {
         console.error(err)
       })
   }, [])
+
+  // ✅ FILTER LOGIC
+  const filteredTickets = tickets.filter(ticket => {
+    if (filter === "completed") {
+      return ticket.current_status === "completed"
+    }
+    return ticket.current_status !== "completed"
+  })
 
   return (
 
@@ -40,15 +49,35 @@ export default function TicketList() {
         sx={{ mb: 2 }}
       >
         <Typography sx={{ fontWeight: 500 }}>
-          Total: {tickets.length} tickets
+          Total: {filteredTickets.length} tickets
         </Typography>
 
-        <Button
-          variant="contained"
-          sx={{ borderRadius: 2, textTransform: "none" }}
-        >
-          + Create Ticket
-        </Button>
+        <Stack direction="row" spacing={1}>
+
+          <Button
+            variant={filter === "UNCOMPLETED" ? "contained" : "outlined"}
+            onClick={() => setFilter("UNCOMPLETED")}
+            sx={{ textTransform: "none" }}
+          >
+            Uncompleted
+          </Button>
+
+          <Button
+            variant={filter === "COMPLETED" ? "contained" : "outlined"}
+            onClick={() => setFilter("completed")}
+            sx={{ textTransform: "none" }}
+          >
+            Completed
+          </Button>
+
+          <Button
+            variant="contained"
+            sx={{ borderRadius: 2, textTransform: "none", ml: 1 }}
+          >
+            + Create Ticket
+          </Button>
+
+        </Stack>
       </Stack>
 
       {/* TABLE CARD */}
@@ -61,18 +90,18 @@ export default function TicketList() {
       >
         <CardContent sx={{ p: 3 }}>
 
-          {tickets.length === 0 ? (
+          {filteredTickets.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 6 }}>
               <Typography variant="h6">
-                No tickets yet 👀
+                No tickets found 👀
               </Typography>
               <Typography sx={{ color: "#6b7280", mt: 1 }}>
-                Create your first ticket
+                Try changing the filter
               </Typography>
             </Box>
           ) : (
             <TicketTable
-              tickets={tickets}
+              tickets={filteredTickets}
               onView={(id) => navigate(`/tickets/${id}`)}
             />
           )}

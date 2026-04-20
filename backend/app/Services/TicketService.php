@@ -74,7 +74,7 @@ class TicketService
         }
 
         if ($creator->hasRole('kepala_department')) {
-            return TicketStatus::ASSIGNED_TO_PIC; // atau next step
+            return TicketStatus::WAITING_PIC_ASSIGNED; // atau next step
         }
 
         return TicketStatus::WAITING_UNIT_APPROVAL;

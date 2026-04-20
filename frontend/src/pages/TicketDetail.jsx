@@ -437,7 +437,7 @@ export default function TicketDetail() {
           {/* Right Column - Actions & Workflow */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Actions Card - Only show if user can approve */}
-            {(canApprove || ticket.current_status === "assigned_to_pic"  ||
+            {(canApprove || ticket.current_status === "waiting_pic_assigned"  ||
             (ticket.current_status === "in_progress" && Number(currentUser?.id) === Number(ticket?.pic_id || ticket?.pic?.id) || 
             ticket.current_status === "waiting_department_review")) && (
               <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0e0e0", position: "sticky", top: 20 }}>

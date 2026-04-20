@@ -11,7 +11,7 @@ class TicketStatusPresenter
             TicketStatus::DRAFT => 'Draft',
             TicketStatus::WAITING_UNIT_APPROVAL => 'Menunggu Approval Kepala Unit',
             TicketStatus::WAITING_DEPARTMENT_APPROVAL => 'Menunggu Approval Kepala Department',
-            TicketStatus::ASSIGNED_TO_PIC => 'Menunggu Assign PIC',
+            TicketStatus::WAITING_PIC_ASSIGNED => 'Menunggu Assign PIC',
             TicketStatus::IN_PROGRESS => 'Sedang Dikerjakan',
             TicketStatus::WAITING_DEPARTMENT_REVIEW => 'Menunggu Review Department',
             TicketStatus::COMPLETED => 'Selesai',

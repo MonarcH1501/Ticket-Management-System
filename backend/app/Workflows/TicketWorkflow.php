@@ -33,11 +33,11 @@ class TicketWorkflow
 
             TicketStatus::WAITING_DEPARTMENT_APPROVAL =>
                 in_array($to, [
-                    TicketStatus::ASSIGNED_TO_PIC,
+                    TicketStatus::WAITING_PIC_ASSIGNED,
                     TicketStatus::REJECTED
                 ]),
 
-            TicketStatus::ASSIGNED_TO_PIC =>
+            TicketStatus::WAITING_PIC_ASSIGNED =>
                 in_array($to, [
                     TicketStatus::IN_PROGRESS,
                 ]),

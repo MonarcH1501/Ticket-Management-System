@@ -79,7 +79,7 @@ class TicketAnalyticsController extends Controller
 
             $data['my_action']['assigned_to_me'] = Ticket::where('pic_id', $user->id)
                 ->whereIn('current_status', [
-                    \App\Enums\TicketStatus::ASSIGNED_TO_PIC,
+                    \App\Enums\TicketStatus::WAITING_PIC_ASSIGNED,
                     \App\Enums\TicketStatus::IN_PROGRESS
                 ])
                 ->count();
@@ -182,23 +182,18 @@ class TicketAnalyticsController extends Controller
         $user = $request->user();
 
         $tickets = Ticket::with('approvals')->get();
-
         $todo = [];
         $inProgress = [];
         $done = [];
 
         foreach ($tickets as $ticket) {
 
-            // 🔥 FIX ENUM
             $status = strtolower($ticket->current_status->value ?? '');
 
-            // ✅ DONE
             if (in_array($status, ['completed', 'closed'])) {
                 $done[] = $ticket;
                 continue;
             }
-
-            // ✅ TO DO
             if ($ticket->current_approver_id === $user->id) {
                 $todo[] = $ticket;
                 continue;

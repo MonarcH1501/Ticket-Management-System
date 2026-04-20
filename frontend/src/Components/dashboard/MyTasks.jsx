@@ -5,15 +5,30 @@ import {
   Chip
 } from "@mui/material"
 import { useNavigate } from "react-router-dom"
+import { useContext } from "react"
+import { AuthContext } from "../../context/auth-context"
 
 export default function MyTasks({ data }) {
 
   const navigate = useNavigate()
+  const { user } = useContext(AuthContext)
+
+  const canViewTodo = user?.roles?.some(r =>
+    ["admin", "superadmin", "kepala_department","kepala_unit"].includes(r.name)
+  )
+
+  const processItems = (items = []) => {
+    return [...items]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 20)
+  }
 
   const columns = [
-    { title: "TO DO", items: data?.todo ?? [] },
-    { title: "IN PROGRESS", items: data?.in_progress ?? [] },
-    { title: "DONE", items: data?.done ?? [] }
+    ...(canViewTodo
+      ? [{ title: "TO DO", items: processItems(data?.todo) }]
+      : []),
+    { title: "IN PROGRESS", items: processItems(data?.in_progress) },
+    { title: "DONE", items: processItems(data?.done) }
   ]
 
   const getColor = (status) => {
@@ -29,7 +44,6 @@ export default function MyTasks({ data }) {
   }
 
   return (
-
     <Box
       sx={{
         display: "flex",
@@ -49,7 +63,6 @@ export default function MyTasks({ data }) {
           }}
         >
 
-          {/* HEADER */}
           <Typography
             sx={{
               fontWeight: "bold",
@@ -61,7 +74,6 @@ export default function MyTasks({ data }) {
             {col.title} ({col.items.length})
           </Typography>
 
-          {/* LIST */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
 
             {col.items.length === 0 && (

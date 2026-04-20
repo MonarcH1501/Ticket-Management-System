@@ -59,7 +59,7 @@ class DepartmentApprovalService
             }
 
             // ================= APPROVE → ASSIGN PIC =================
-            $workflow->transition($ticket, TicketStatus::ASSIGNED_TO_PIC);
+            $workflow->transition($ticket, TicketStatus::WAITING_PIC_ASSIGNED);
 
             $ticket->update([
                 'current_approver_id' => null 

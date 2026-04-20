@@ -46,17 +46,8 @@ export default function TicketTable({ tickets, onView }) {
 
   const columns = [
 
-    {
-      field: "ticket_code",
-      headerName: "Code",
-      width: 150
-    },
-
-    {
-      field: "title",
-      headerName: "Title",
-      flex: 1
-    },
+    { field: "ticket_code", headerName: "Code", width: 150 },
+    { field: "title", headerName: "Title", flex: 1 },
 
     {
       field: "current_status",
@@ -82,11 +73,7 @@ export default function TicketTable({ tickets, onView }) {
       width: 140,
       sortable: false,
       renderCell: (params) => (
-        <Stack
-          direction="row"
-          alignItems="center"
-          sx={{ width: "100%" }}
-        >
+        <Stack direction="row" alignItems="center" sx={{ width: "100%" }}>
           <Button
             variant="text"
             size="small"
@@ -111,13 +98,10 @@ export default function TicketTable({ tickets, onView }) {
         </Stack>
       )
     }
-
   ]
 
   return (
-
     <Box sx={{ width: "100%" }}>
-
       <DataGrid
         rows={tickets}
         columns={columns}
@@ -125,21 +109,13 @@ export default function TicketTable({ tickets, onView }) {
         pageSizeOptions={[5, 10, 20]}
         disableRowSelectionOnClick
         onRowClick={(params) => onView(params.row.id)}
-
         sx={{
-
           border: 0,
           borderRadius: 3,
 
-          // HEADER
           "& .MuiDataGrid-columnHeaders": {
             background: "#f8fafc",
             fontWeight: 600
-          },
-
-          // ROW
-          "& .MuiDataGrid-row": {
-            transition: "0.2s"
           },
 
           "& .MuiDataGrid-row:hover": {
@@ -147,37 +123,25 @@ export default function TicketTable({ tickets, onView }) {
             cursor: "pointer"
           },
 
-          // ✅ FIX: CENTER SEMUA ISI
           "& .MuiDataGrid-cell": {
             display: "flex",
             alignItems: "center",
             borderBottom: "1px solid #f1f5f9"
           },
 
-          // REMOVE BLUE OUTLINE
-          "& .MuiDataGrid-cell:focus": {
+          "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
             outline: "none"
           },
 
-          "& .MuiDataGrid-cell:focus-within": {
-            outline: "none"
-          },
-
-          // REMOVE SELECT EFFECT
           "& .MuiDataGrid-row.Mui-selected": {
             background: "transparent !important"
           },
 
-          // ACTION COLUMN GA IKUT HOVER
           "& .MuiDataGrid-row:hover .MuiDataGrid-cell:last-child": {
             background: "transparent"
           }
-
         }}
       />
-
     </Box>
-
   )
-
 }

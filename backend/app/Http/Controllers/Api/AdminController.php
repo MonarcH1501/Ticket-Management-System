@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\TicketCategory;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -250,5 +251,83 @@ class AdminController extends Controller
         $user->syncRoles($request->roles);
 
         return response()->json($user->load('roles'));
+    }
+
+    public function ticketCategories(Request $request)
+    {
+        $query = TicketCategory::with('department');
+
+        if ($request->department_id) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        if (!is_null($request->is_active)) {
+            $query->where('is_active', $request->is_active);
+        }
+
+        return response()->json($query->get());
+    }
+
+    public function storeTicketCategory(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'code' => 'required|string|max:50|unique:ticket_categories,code',
+            'name' => 'required|string|max:255',
+            'department_id' => 'required|exists:departments,id',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $category = TicketCategory::create($request->only([
+            'code',
+            'name',
+            'department_id',
+            'description',
+            'is_active'
+        ]));
+
+        return response()->json($category->load('department'), 201);
+    }
+    
+    public function updateTicketCategory(Request $request, TicketCategory $ticketCategory)
+    {
+        $validator = Validator::make($request->all(), [
+            'code' => [
+                'string',
+                'max:50',
+                Rule::unique('ticket_categories')->ignore($ticketCategory->id)
+            ],
+            'name' => 'string|max:255',
+            'department_id' => 'exists:departments,id',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $ticketCategory->update($request->only([
+            'code',
+            'name',
+            'department_id',
+            'description',
+            'is_active'
+        ]));
+
+        return response()->json($ticketCategory->load('department'));
+    }
+
+    public function destroyTicketCategory(TicketCategory $ticketCategory)
+    {
+        $ticketCategory->delete();
+
+        return response()->json([
+            'message' => 'Ticket category deleted'
+        ]);
     }
 }

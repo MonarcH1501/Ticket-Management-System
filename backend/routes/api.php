@@ -88,11 +88,17 @@ use Spatie\Permission\Middleware\RoleMiddleware;
     Route::post('/users/{user}/roles/{role?}', [AdminController::class, 'assignRoleToUser']);
     Route::delete('/users/{user}/roles/{role}', [AdminController::class, 'removeRoleFromUser']);
     Route::post('/users/{user}/permissions', [AdminController::class, 'syncUserPermissions']);
+
+    //ticket Categories
+    Route::get('ticket-categories', [AdminController::class, 'ticketCategories']);
+    Route::post('ticket-categories', [AdminController::class, 'storeTicketCategory']);
+    Route::put('ticket-categories/{ticketCategory}', [AdminController::class, 'updateTicketCategory']);
+    Route::delete('ticket-categories/{ticketCategory}', [AdminController::class, 'destroyTicketCategory']);
     });
     });
 
     });
-
+    
 
 
 
