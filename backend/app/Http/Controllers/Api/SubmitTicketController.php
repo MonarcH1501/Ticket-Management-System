@@ -13,6 +13,8 @@ class SubmitTicketController extends Controller
 {
      public function handle(Request $request, Ticket $ticket)
     {
+        $this->authorize('submit', $ticket);
+
         try {
             $ticket = app(SubmitTicketService::class)
                 ->handle(auth()->user(), 

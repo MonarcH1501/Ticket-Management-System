@@ -71,9 +71,9 @@ export default function OverviewTab() {
   }
 
   const total = summary?.overview?.total ?? 0;
-  const progress = summary?.overview?.in_progress ?? 0;
   const completed = summary?.overview?.completed ?? 0;
   const approval = summary?.my_action?.need_my_approval ?? 0;
+  const progress = total - completed - approval;
 
   return (
     <Box sx={{ minHeight: 0 }}>

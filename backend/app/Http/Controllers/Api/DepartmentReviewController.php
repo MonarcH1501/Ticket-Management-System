@@ -14,6 +14,8 @@ class DepartmentReviewController extends Controller
         Ticket $ticket,
         DepartmentReviewService $service
     ) {
+        $this->authorize('reviewDepartment', $ticket);
+
         $validated = $request->validate([
             'action' => 'required|in:approve,reject',   
             'notes' => 'nullable|string'

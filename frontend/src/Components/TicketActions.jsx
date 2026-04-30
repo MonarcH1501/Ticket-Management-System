@@ -14,12 +14,22 @@ import api from "../api/axios"
 export default function TicketActions({ ticket, refresh }) {
 
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(false) 
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
   const [file, setFile] = useState(null)
   const [pics, setPics] = useState([])
   const [selectedPic, setSelectedPic] = useState("")
-  const [notes, setNotes] = useState("")
+
+  // 🔥 NEW (Assign PIC)
+  const [priority, setPriority] = useState("medium")
+  const [dueDate, setDueDate] = useState("")
+  const [notesAssign, setNotesAssign] = useState("")
+
+  // 🔥 notes per step
+  const [notesUnit, setNotesUnit] = useState("")
+  const [notesDept, setNotesDept] = useState("")
+  const [notesReview, setNotesReview] = useState("")
 
   // ================= GET USER =================
   useEffect(() => {
@@ -38,13 +48,14 @@ export default function TicketActions({ ticket, refresh }) {
       .catch(err => console.error(err))
   }, [ticket])
 
-  // ================= API =================
-  const handleAction = async (url, data = {}) => {
+  // ================= GENERIC ACTION =================
+  const handleAction = async (url, data = {}, resetFn) => {
     setLoading(true)
     setError(null)
 
     try {
       await api.post(url, data)
+      if (resetFn) resetFn()
       refresh()
     } catch (err) {
       console.error(err)
@@ -54,6 +65,7 @@ export default function TicketActions({ ticket, refresh }) {
     }
   }
 
+  // ================= FILE SUBMIT =================
   const handleSubmitWithFile = async () => {
     setLoading(true)
     setError(null)
@@ -66,6 +78,7 @@ export default function TicketActions({ ticket, refresh }) {
         headers: { "Content-Type": "multipart/form-data" }
       })
 
+      setFile(null)
       refresh()
     } catch (err) {
       console.error(err)
@@ -75,46 +88,26 @@ export default function TicketActions({ ticket, refresh }) {
     }
   }
 
-  // ================= LOGIC =================
+  // ================= STATUS =================
   const status = (ticket.current_status || "").toLowerCase()
 
-
   const isApprover =
-    Number(user?.id) === Number(ticket.current_approver_id) ||
-    ticket.approvals?.some(a =>
-      a.status === "pending" &&
-      Number(a.approver?.id) === Number(user?.id)
-    )
+    Number(user?.id) === Number(ticket.current_approver_id)
 
   const isPIC =
     Number(user?.id) === Number(ticket?.pic_id || ticket?.pic?.id)
 
-  // ================= STATUS FLAGS =================
   const isUnit = status === "waiting_unit_approval"
   const isDept = status === "waiting_department_approval"
-  const isAssignPic = status === "assigned_to_pic"
+  const isAssignPic = status === "waiting_pic_assigned"
   const isInProgress = status === "in_progress"
   const isDeptReview = status === "waiting_department_review"
 
-
   const canShowActions =
-    (isApprover && (
-      isUnit ||
-      isDept ||
-      isAssignPic ||
-      isDeptReview
-    )) ||
+    (isApprover && (isUnit || isDept || isAssignPic || isDeptReview)) ||
     (isPIC && isInProgress)
 
   if (!canShowActions) return null
-
-  console.log("=== DEBUG FINAL ===", {
-    userId: user?.id,
-    status,
-    isApprover,
-    isPIC,
-    canShowActions
-  })
 
   return (
     <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
@@ -128,30 +121,50 @@ export default function TicketActions({ ticket, refresh }) {
 
           {error && <Alert severity="error">{error}</Alert>}
 
-          {/* ================= UNIT ================= */}
+          {/* ================= UNIT APPROVAL ================= */}
           {isApprover && isUnit && (
             <>
-              <Typography fontSize={13} color="text.secondary">
-                Waiting Unit Approval
-              </Typography>
+              <Typography fontSize={13}>Waiting Unit Approval</Typography>
+
+              <TextField
+                label="Notes (optional)"
+                multiline
+                rows={3}
+                fullWidth
+                value={notesUnit}
+                onChange={(e) => setNotesUnit(e.target.value)}
+              />
 
               <Button
                 variant="contained"
                 disabled={loading}
                 onClick={() =>
-                  handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "approve" })
+                  handleAction(
+                    `/tickets/${ticket.id}/unit-approval`,
+                    { action: "approve", notes: notesUnit },
+                    () => setNotesUnit("")
+                  )
                 }
               >
-                {loading ? "Processing..." : "Approve"}
+                Approve
               </Button>
 
               <Button
                 variant="outlined"
                 color="error"
                 disabled={loading}
-                onClick={() =>
-                  handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "reject" })
-                }
+                onClick={() => {
+                  if (!notesUnit) {
+                    setError("Notes wajib diisi saat reject")
+                    return
+                  }
+
+                  handleAction(
+                    `/tickets/${ticket.id}/unit-approval`,
+                    { action: "reject", notes: notesUnit },
+                    () => setNotesUnit("")
+                  )
+                }}
               >
                 Reject
               </Button>
@@ -161,27 +174,47 @@ export default function TicketActions({ ticket, refresh }) {
           {/* ================= DEPARTMENT APPROVAL ================= */}
           {isApprover && isDept && (
             <>
-              <Typography fontSize={13} color="text.secondary">
-                Waiting Department Approval
-              </Typography>
+              <Typography fontSize={13}>Waiting Department Approval</Typography>
+
+              <TextField
+                label="Notes (optional)"
+                multiline
+                rows={3}
+                fullWidth
+                value={notesDept}
+                onChange={(e) => setNotesDept(e.target.value)}
+              />
 
               <Button
                 variant="contained"
                 disabled={loading}
                 onClick={() =>
-                  handleAction(`/tickets/${ticket.id}/department-approval`, { action: "approve" })
+                  handleAction(
+                    `/tickets/${ticket.id}/department-approval`,
+                    { action: "approve", notes: notesDept },
+                    () => setNotesDept("")
+                  )
                 }
               >
-                {loading ? "Processing..." : "Approve"}
+                Approve
               </Button>
 
               <Button
                 variant="outlined"
                 color="error"
                 disabled={loading}
-                onClick={() =>
-                  handleAction(`/tickets/${ticket.id}/department-approval`, { action: "reject" })
-                }
+                onClick={() => {
+                  if (!notesDept) {
+                    setError("Notes wajib diisi saat reject")
+                    return
+                  }
+
+                  handleAction(
+                    `/tickets/${ticket.id}/department-approval`,
+                    { action: "reject", notes: notesDept },
+                    () => setNotesDept("")
+                  )
+                }}
               >
                 Reject
               </Button>
@@ -191,8 +224,8 @@ export default function TicketActions({ ticket, refresh }) {
           {/* ================= ASSIGN PIC ================= */}
           {isApprover && isAssignPic && (
             <>
-              <Typography fontSize={13} color="text.secondary">
-                Assign PIC
+              <Typography fontSize={13}>
+                Assign PIC + Set Priority & Due Date
               </Typography>
 
               <TextField
@@ -205,10 +238,6 @@ export default function TicketActions({ ticket, refresh }) {
                   Select PIC
                 </MenuItem>
 
-                {pics.length === 0 && (
-                  <MenuItem disabled>No PIC available</MenuItem>
-                )}
-
                 {pics.map(pic => (
                   <MenuItem key={pic.id} value={pic.id}>
                     {pic.name}
@@ -216,24 +245,71 @@ export default function TicketActions({ ticket, refresh }) {
                 ))}
               </TextField>
 
+              <TextField
+                select
+                label="Priority"
+                fullWidth
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              >
+                <MenuItem value="low">Low</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="high">High</MenuItem>
+              </TextField>
+
+              <TextField
+                type="date"
+                label="Due Date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+
+              <TextField
+                label="Notes (optional)"
+                multiline
+                rows={3}
+                fullWidth
+                value={notesAssign}
+                onChange={(e) => setNotesAssign(e.target.value)}
+              />
+
               <Button
                 variant="contained"
-                disabled={loading || !selectedPic}
-                onClick={() =>
-                  handleAction(`/tickets/${ticket.id}/assign-pic`, {
-                    pic_id: selectedPic
-                  })
-                }
+                disabled={loading || !selectedPic || !dueDate}
+                onClick={() => {
+                  if (!selectedPic || !dueDate) {
+                    setError("PIC dan Due Date wajib diisi")
+                    return
+                  }
+
+                  handleAction(
+                    `/tickets/${ticket.id}/assign-pic`,
+                    {
+                      pic_id: selectedPic,
+                      priority,
+                      due_date: dueDate,
+                      notes: notesAssign
+                    },
+                    () => {
+                      setSelectedPic("")
+                      setPriority("medium")
+                      setDueDate("")
+                      setNotesAssign("")
+                    }
+                  )
+                }}
               >
-                {loading ? "Assigning..." : "Assign PIC"}
+                Assign PIC
               </Button>
             </>
           )}
 
-          {/* ================= PIC SUBMIT ================= */}
+          {/* ================= PIC WORK ================= */}
           {isPIC && isInProgress && (
             <>
-              <Typography fontSize={13} color="text.secondary">
+              <Typography fontSize={13}>
                 Submit Work Result
               </Typography>
 
@@ -253,7 +329,7 @@ export default function TicketActions({ ticket, refresh }) {
                 disabled={loading}
                 onClick={handleSubmitWithFile}
               >
-                {loading ? "Submitting..." : "Submit Work"}
+                Submit Work
               </Button>
             </>
           )}
@@ -261,7 +337,7 @@ export default function TicketActions({ ticket, refresh }) {
           {/* ================= DEPARTMENT REVIEW ================= */}
           {isApprover && isDeptReview && (
             <>
-              <Typography fontSize={13} color="text.secondary">
+              <Typography fontSize={13}>
                 Review Result from PIC
               </Typography>
 
@@ -270,33 +346,40 @@ export default function TicketActions({ ticket, refresh }) {
                 multiline
                 rows={3}
                 fullWidth
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={notesReview}
+                onChange={(e) => setNotesReview(e.target.value)}
               />
 
               <Button
                 variant="contained"
                 disabled={loading}
                 onClick={() =>
-                  handleAction(`/tickets/${ticket.id}/department-review`, {
-                    action: "approve",
-                    notes
-                  })
+                  handleAction(
+                    `/tickets/${ticket.id}/department-review`,
+                    { action: "approve", notes: notesReview },
+                    () => setNotesReview("")
+                  )
                 }
               >
-                {loading ? "Processing..." : "Approve & Close"}
+                Approve & Close
               </Button>
 
               <Button
                 variant="outlined"
                 color="error"
                 disabled={loading}
-                onClick={() =>
-                  handleAction(`/tickets/${ticket.id}/department-review`, {
-                    action: "reject",
-                    notes
-                  })
-                }
+                onClick={() => {
+                  if (!notesReview) {
+                    setError("Notes wajib diisi saat reject")
+                    return
+                  }
+
+                  handleAction(
+                    `/tickets/${ticket.id}/department-review`,
+                    { action: "reject", notes: notesReview },
+                    () => setNotesReview("")
+                  )
+                }}
               >
                 Reject (Back to PIC)
               </Button>

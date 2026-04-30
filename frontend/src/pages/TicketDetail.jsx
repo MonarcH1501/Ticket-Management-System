@@ -88,7 +88,6 @@ export default function TicketDetail() {
     
     const isDesignatedApprover = ticket.current_approver_id === currentUser.id
     
-    // Cek apakah user memiliki role yang sesuai berdasarkan approvals yang pending
     const hasPendingApprovalRole = ticket.approvals?.some(approval => 
       approval.status === 'pending' && 
       approval.approver?.id === currentUser.id
@@ -146,15 +145,7 @@ export default function TicketDetail() {
     if (p === "medium") return <Flag sx={{ fontSize: 16 }} />
     return <Flag sx={{ fontSize: 16 }} />
   }
-
-  console.log("=== FINAL CHECK PARENT ===", {
-  status: ticket?.current_status,
-  currentUserId: currentUser?.id,
-  picId: ticket?.pic_id,
-  isPIC: Number(currentUser?.id) === Number(ticket?.pic_id),
-  canApprove,
-})
-
+  
   if (loading) {
     return (
       <Box sx={{ p: 3 }}>
@@ -430,17 +421,14 @@ export default function TicketDetail() {
               </Card>
             )}
 
-            {/* Attachments */}
             <TicketAttachments ticketId={id} />
           </Box>
 
-          {/* Right Column - Actions & Workflow */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* Actions Card - Only show if user can approve */}
             {(canApprove || ticket.current_status === "waiting_pic_assigned"  ||
             (ticket.current_status === "in_progress" && Number(currentUser?.id) === Number(ticket?.pic_id || ticket?.pic?.id) || 
             ticket.current_status === "waiting_department_review")) && (
-              <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0e0e0", position: "sticky", top: 20 }}>
+              <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0e0e0"  , top: 20 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
                     Actions Required

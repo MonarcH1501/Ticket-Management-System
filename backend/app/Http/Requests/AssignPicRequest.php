@@ -14,7 +14,10 @@ class AssignPicRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pic_id' => ['required', 'exists:users,id'],
+            'pic_id'   => ['required', 'exists:users,id'],
+            'priority' => ['required', 'in:low,medium,high'],
+            'due_date' => ['required', 'date', 'after:today'],
+            'notes'    => ['nullable', 'string'],
         ];
     }
 }

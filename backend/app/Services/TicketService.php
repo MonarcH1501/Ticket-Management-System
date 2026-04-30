@@ -33,7 +33,7 @@ class TicketService
             'created_by'          => $creator->id,
             'current_status'      => $initialStatus,
             'current_approver_id' => $initialApprover?->id,
-            'priority'            => $data['priority'] ?? 'medium',
+            'priority'            => null,
         ]);
     }
 

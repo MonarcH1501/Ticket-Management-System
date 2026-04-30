@@ -13,9 +13,11 @@ class AssignPicController extends Controller
 {
     public function handle(AssignPicRequest $request, Ticket $ticket)
     {
+        $this->authorize('assignPic', $ticket);
+
         try {
             $ticket = app(AssignPicService::class)
-                ->handle(auth()->user(), $ticket, $request->pic_id)
+                ->handle(auth()->user(), $ticket, $request->validated())
                 ->fresh();
 
             return response()->json([

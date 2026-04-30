@@ -12,6 +12,8 @@ class UnitApprovalController extends Controller
 {
     public function handle(UnitApprovalRequest $request, Ticket $ticket)
     {
+        $this->authorize('approveUnit', $ticket);
+
         $ticket = app(UnitApprovalService::class)
             ->handle(auth()->user(), $ticket, $request->validated());
 
@@ -21,5 +23,4 @@ class UnitApprovalController extends Controller
         ]);
     }
 }
-
 

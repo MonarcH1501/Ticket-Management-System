@@ -15,6 +15,8 @@ class DepartmentApprovalController extends Controller
         DepartmentApprovalRequest $request,
         Ticket $ticket
     ) {
+        $this->authorize('approveDepartment', $ticket);
+
         try {
             $ticket = app(DepartmentApprovalService::class)
                 ->handle(auth()->user(), $ticket, $request->validated())

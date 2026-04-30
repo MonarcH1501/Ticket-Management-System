@@ -46,7 +46,7 @@ class TicketWorkflowTimelineService
     {
         return match ($stepKey) {
 
-            'unit_approval' => match ($ticket->status) {
+            'unit_approval' => match ($ticket->current_status) {
                 TicketStatus::WAITING_UNIT_APPROVAL => 'current',
                 TicketStatus::WAITING_DEPARTMENT_APPROVAL,
                 TicketStatus::WAITING_PIC_ASSIGNED,
@@ -57,7 +57,7 @@ class TicketWorkflowTimelineService
                 default => 'pending',
             },
 
-            'department_approval' => match ($ticket->status) {
+            'department_approval' => match ($ticket->current_status) {
                 TicketStatus::WAITING_DEPARTMENT_APPROVAL => 'current',
                 TicketStatus::WAITING_PIC_ASSIGNED,
                 TicketStatus::IN_PROGRESS,
@@ -67,7 +67,7 @@ class TicketWorkflowTimelineService
                 default => 'pending',
             },
 
-            'pic_work' => match ($ticket->status) {
+            'pic_work' => match ($ticket->current_status) {
                 TicketStatus::WAITING_PIC_ASSIGNED,
                 TicketStatus::IN_PROGRESS => 'current',
                 TicketStatus::WAITING_DEPARTMENT_REVIEW,
@@ -76,7 +76,7 @@ class TicketWorkflowTimelineService
                 default => 'pending',
             },
 
-            'department_review' => match ($ticket->status) {
+            'department_review' => match ($ticket->current_status) {
                 TicketStatus::WAITING_DEPARTMENT_REVIEW => 'current',
                 TicketStatus::COMPLETED,
                 TicketStatus::CLOSED => 'done',
@@ -123,8 +123,8 @@ class TicketWorkflowTimelineService
                 $ticket->approvals->firstWhere('role_as', 'kepala_department')
             )?->approved_at?->toISOString(),
 
-            'pic_work' => $ticket->status === TicketStatus::WAITING_DEPARTMENT_REVIEW
-                || $ticket->status === TicketStatus::COMPLETED
+            'pic_work' => $ticket->current_status === TicketStatus::WAITING_DEPARTMENT_REVIEW
+                || $ticket->current_status === TicketStatus::COMPLETED
                 ? optional(
                     $ticket->approvals->firstWhere('role_as', 'pic')
                 )?->approved_at?->toISOString()

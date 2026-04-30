@@ -16,40 +16,11 @@ class TicketController extends Controller
     public function __construct(
         protected TicketService $ticketService
     ) {} 
-
-    private function canView($user, Ticket $ticket): bool
-    {
-        if ($user->hasRole('superadmin')) {
-            return true;
-        }
-
-        if ($ticket->created_by === $user->id) {
-            return true;
-        }
-
-        if ($ticket->pic_id === $user->id) {
-            return true;
-        }
-
-        if ($ticket->current_approver_id === $user->id) {
-            return true;
-        }
-
-        if ($user->hasRole('kepala_department') 
-            && $user->department_id === $ticket->department_id) {
-            return true;
-        }
-
-        if ($user->hasRole('kepala_unit') 
-            && $user->unit_id === $ticket->creator->unit_id) {
-            return true;
-        }
-
-        return false;
-    }
     
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Ticket::class);
+
         $user = $request->user();
 
         $query = Ticket::query()
@@ -94,6 +65,8 @@ class TicketController extends Controller
 
     public function store(StoreTicketRequest $request): JsonResponse
     {
+        $this->authorize('create', Ticket::class);
+
         $ticket = $this->ticketService->create(
             $request->validated(),
             $request->user()
@@ -107,7 +80,7 @@ class TicketController extends Controller
 
     public function workflow(Ticket $ticket, TicketWorkflowTimelineService $service)
     {
-        // $this->authorize('view', $ticket);
+        $this->authorize('view', $ticket);
 
         return response()->json(
             $service->build($ticket)
@@ -116,12 +89,7 @@ class TicketController extends Controller
 
     public function show(Request $request, Ticket $ticket)
     {
-        $user = $request->user();
-
-        // Filter akses manual (tanpa policy dulu biar simpel)
-        if (!$this->canView($user, $ticket)) {
-            abort(403, 'Unauthorized');
-        }
+        $this->authorize('view', $ticket);
 
         $ticket->load([
             'creator:id,name,unit_id,department_id',
