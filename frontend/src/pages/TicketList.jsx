@@ -16,7 +16,7 @@ import TicketTable from "../Components/TicketTable"
 export default function TicketList() {
 
   const [tickets, setTickets] = useState([])
-  const [filter, setFilter] = useState("UNCOMPLETED") // default
+  const [filter, setFilter] = useState("UNCOMPLETED")
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -29,16 +29,15 @@ export default function TicketList() {
       })
   }, [])
 
-  // ✅ FILTER LOGIC
+  // ✅ FIX: samakan case
   const filteredTickets = tickets.filter(ticket => {
-    if (filter === "completed") {
+    if (filter === "COMPLETED") {
       return ticket.current_status === "completed"
     }
     return ticket.current_status !== "completed"
   })
 
   return (
-
     <Box sx={{ px: 3, py: 3 }}>
 
       {/* ACTION BAR */}
@@ -64,7 +63,7 @@ export default function TicketList() {
 
           <Button
             variant={filter === "COMPLETED" ? "contained" : "outlined"}
-            onClick={() => setFilter("completed")}
+            onClick={() => setFilter("COMPLETED")}
             sx={{ textTransform: "none" }}
           >
             Completed
@@ -73,6 +72,7 @@ export default function TicketList() {
           <Button
             variant="contained"
             sx={{ borderRadius: 2, textTransform: "none", ml: 1 }}
+            onClick={() => navigate("/tickets/create")}
           >
             + Create Ticket
           </Button>

@@ -16,7 +16,7 @@ class AssignPicService
     {
         return DB::transaction(function () use ($assigner, $ticket, $data) {
 
-            // ================= VALIDATION =================
+
             if ($ticket->current_status !== TicketStatus::WAITING_PIC_ASSIGNED) {
                 throw new LogicException('Bukan tahap assign PIC');
             }
@@ -33,7 +33,7 @@ class AssignPicService
                 throw new LogicException('Anda bukan approver saat ini');
             }
 
-            // ================= AMBIL DATA =================
+
             $picId = $data['pic_id'];
             $priority = $data['priority'];
             $dueDate = $data['due_date'];
@@ -50,7 +50,6 @@ class AssignPicService
                 );
             }
 
-            // ================= WORKFLOW =================
             $workflow = app(TicketWorkflow::class);
 
             // ================= LOG =================

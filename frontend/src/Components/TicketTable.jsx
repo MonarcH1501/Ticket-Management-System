@@ -4,26 +4,31 @@ import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import Stack from "@mui/material/Stack"
 
+// ✅ STATUS (simple kayak priority)
 function StatusBadge({ status }) {
 
+  const s = status?.toLowerCase()
+
   const colors = {
-    WAITING_UNIT_APPROVAL: "warning",
-    WAITING_DEPARTMENT_APPROVAL: "info",
-    IN_PROGRESS: "primary",
-    COMPLETED: "success",
-    REJECTED: "error"
+    waiting_unit_approval: "warning",
+    waiting_department_approval: "warning",
+    waiting_pic_assigned: "warning",
+    in_progress: "info",
+    completed: "success",
+    rejected: "error"
   }
 
   return (
     <Chip
-      label={status.replaceAll("_", " ")}
-      color={colors[status] || "default"}
+      label={s?.replaceAll("_", " ")}
+      color={colors[s] || "default"}
       size="small"
-      sx={{ fontWeight: 500 }}
+      sx={{ fontWeight: 500, textTransform: "capitalize" }}
     />
   )
 }
 
+// ✅ PRIORITY (tetap)
 function PriorityBadge({ priority }) {
 
   const colors = {
@@ -135,10 +140,6 @@ export default function TicketTable({ tickets, onView }) {
 
           "& .MuiDataGrid-row.Mui-selected": {
             background: "transparent !important"
-          },
-
-          "& .MuiDataGrid-row:hover .MuiDataGrid-cell:last-child": {
-            background: "transparent"
           }
         }}
       />

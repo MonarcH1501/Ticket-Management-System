@@ -163,36 +163,6 @@ export default function TicketForm({ onSubmit, loading }) {
             </TextField>
           </Box>
 
-          {/* PRIORITY */}
-          <Box>
-            <Typography fontWeight={600} mb={1}>Priority</Typography>
-            <TextField
-              name="priority"
-              select
-              fullWidth
-              value={form.priority}
-              onChange={handleChange}
-              sx={{ background: "#fff", borderRadius: 2 }}
-            >
-              <MenuItem value="low">Low</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-            </TextField>
-          </Box>
-
-          {/* DATE */}
-          <Box>
-            <Typography fontWeight={600} mb={1}>Due Date</Typography>
-            <TextField
-              name="due_date"
-              type="date"
-              fullWidth
-              value={form.due_date}
-              onChange={handleChange}
-              sx={{ background: "#fff", borderRadius: 2 }}
-            />
-          </Box>
-
           {/* DESCRIPTION FULL */}
           <Box sx={{ gridColumn: "1 / -1" }}>
             <Typography fontWeight={600} mb={1}>Description</Typography>

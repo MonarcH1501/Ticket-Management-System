@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Enums\TicketStatus;
 use App\Models\User;
 use App\Models\Department;
+use App\Models\Unit;
 use App\Models\TicketCategory;
 
 class Ticket extends Model
@@ -20,6 +21,7 @@ class Ticket extends Model
         'department_id',
         'ticket_category_id',
         'created_by',
+        'unit_id',
         'current_status',
         'current_approver_id',
         'pic_id',
@@ -40,6 +42,11 @@ class Ticket extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
     }
 
     public function category()

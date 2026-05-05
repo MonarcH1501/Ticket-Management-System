@@ -242,7 +242,7 @@ export default function TicketDetail() {
               <Box>
                 <Typography variant="caption" color="text.secondary">Created By</Typography>
                 <Typography fontWeight={600} fontSize={14}>{ticket.creator?.name || "-"}</Typography>
-                <Typography variant="caption" color="text.secondary">{ticket.department?.name || "-"}</Typography>
+                <Typography variant="caption" color="text.secondary">{ticket.unit?.name || "-"}</Typography>
               </Box>
             </Stack>
           </Paper>

@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('current_status');
             $table->foreignId('current_approver_id')->nullable()->constrained('users')->nullOnDelete();
 
-            $table->string('priority')->default('medium');
+            $table->string('priority')->nullable();
             $table->date('due_date')->nullable();
             $table->timestamp('closed_at')->nullable();
             $table->timestamps();
