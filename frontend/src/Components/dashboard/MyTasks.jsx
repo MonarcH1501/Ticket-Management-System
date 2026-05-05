@@ -102,7 +102,7 @@ export default function MyTasks({ data }) {
               >
 
                 <Typography fontSize={12} color="#94a3b8">
-                  {task.ticket_code}
+                  {task.unit?.name}
                 </Typography>
 
                 <Typography fontWeight="bold" fontSize={14} sx={{ mb: 1 }}>

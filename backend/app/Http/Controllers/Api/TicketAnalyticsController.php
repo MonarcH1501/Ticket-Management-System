@@ -181,7 +181,7 @@ class TicketAnalyticsController extends Controller
     {
         $user = $request->user();
 
-        $tickets = Ticket::with('approvals')->get();
+        $tickets = Ticket::with('approvals','unit','department','pic')->get();
         $todo = [];
         $inProgress = [];
         $done = [];

@@ -17,8 +17,8 @@ use App\Http\Controllers\Api\AdminController;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
     Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
-    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+    Route::get('/login/google', [AuthController::class, 'redirectToGoogle']);
+    Route::get('/login/google/callback', [AuthController::class, 'handleGoogleCallback']);
     Route::middleware('auth:sanctum')->group(function () {
 
     //Route Post

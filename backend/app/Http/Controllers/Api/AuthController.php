@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;    
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Socialite\Facades\Socialite;
+use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -18,7 +20,7 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = \App\Models\User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
@@ -34,38 +36,34 @@ class AuthController extends Controller
         ]);
     }
 
-    public function redirectToGoogle()
+     public function redirectToGoogle()
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
-    // Endpoint untuk menangani callback dari Google
-   public function handleGoogleCallback()
+
+    /**
+     * CALLBACK DARI GOOGLE
+     */
+    public function handleGoogleCallback()
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+
+            $googleUser = Socialite::driver('google')->stateless()->user();
 
             $user = User::where('email', $googleUser->getEmail())->first();
 
-
             if (!$user) {
-                return response()->json([
-                    'message' => 'Email Anda belum terdaftar. Silakan hubungi administrator.',
-                ], 403);
+                return redirect(config('app.frontend_url') . '/login?error=not_registered');
             }
 
-            $token = $user->createToken('api-token', ['*'])->plainTextToken;
+            $token = $user->createToken('api-token')->plainTextToken;
 
-            return response()->json([
-                'token' => $token,
-                'user' => $user,
-            ]);
+            return redirect(config('app.frontend_url') . "/login/google/callback?token={$token}");
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Gagal melakukan login dengan Google',
-                'error' => $e->getMessage(),
-            ], 500);
+
+            return redirect(config('app.frontend_url') . '/login?error=google_failed');
         }
     }
 

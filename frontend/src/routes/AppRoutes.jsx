@@ -16,13 +16,13 @@ export default function AppRoutes() {
 
       {/* Public */}
       <Route path="/login" element={<LoginForm />} />
+      <Route path="/login/google/callback" element={<GoogleCallback />}/>
 
       {/* Protected */}
       <Route element={<ProtectedRoute />}>
         <Route element={<Template />}>
 
           <Route path="/" element={<Dashboard />} />
-          <Route path="/auth/google/callback" element={<GoogleCallback />}/>
           <Route path="/tickets/alltickets" element={<TicketList />} />
           <Route path="/tickets/create" element={<CreateTicket />} />
           <Route path="/tickets/:id" element={<TicketDetail />} />

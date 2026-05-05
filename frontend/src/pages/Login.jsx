@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import api from "../api/axios"
 import { AuthContext } from "../context/auth-context"
 import logo from "../assets/imma.png"
+
 import {
   Box,
   Card,
@@ -10,23 +11,24 @@ import {
   Typography,
   TextField,
   Button,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from "@mui/material"
 
 export default function Login() {
 
-  const [showForm, setShowForm] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false) // ✅ NEW
+  const [loading, setLoading] = useState(false)
 
   const { login } = useContext(AuthContext)
   const navigate = useNavigate()
 
+  // 🔹 LOGIN MANUAL
   const handleLogin = async (e) => {
     e.preventDefault()
 
-    if (loading) return // biar ga double click
+    if (loading) return
 
     setLoading(true)
 
@@ -43,6 +45,11 @@ export default function Login() {
     }
   }
 
+  // 🔹 LOGIN GOOGLE
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/api/login/google`
+  }
+
   return (
     <Box
       sx={{
@@ -54,7 +61,7 @@ export default function Login() {
       }}
     >
 
-      <Card sx={{ width: 600, borderRadius: 3 }}>
+      <Card sx={{ width: 420, borderRadius: 3 }}>
         <CardContent sx={{ textAlign: "center", p: 5 }}>
 
           {/* LOGO */}
@@ -63,10 +70,8 @@ export default function Login() {
             src={logo}
             sx={{
               width: 70,
-              cursor: "pointer",
               mb: 2
             }}
-            onClick={() => setShowForm(!showForm)}
           />
 
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -77,68 +82,59 @@ export default function Login() {
             Sign in to your account
           </Typography>
 
-          {!showForm ? (
+          {/* 🔥 GOOGLE LOGIN */}
+          <Button
+            fullWidth
+            variant="outlined"
+            sx={{ py: 1.3, mb: 2 }}
+            onClick={handleGoogleLogin}
+          >
+            Login with Google
+          </Button>
+
+          <Divider sx={{ my: 2 }}>or</Divider>
+
+          {/* 🔹 FORM LOGIN */}
+          <Box component="form" onSubmit={handleLogin}>
+
+            <TextField
+              fullWidth
+              label="Email"
+              margin="normal"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+            />
+
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              margin="normal"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
             <Button
               fullWidth
-              variant="outlined"
-              sx={{ py: 1.4 }}
-              type="button"
-              onClick={() => setShowForm(true)}
+              variant="contained"
+              sx={{
+                mt: 2,
+                py: 1.3,
+                position: "relative",
+                transform: loading ? "scale(0.98)" : "scale(1)"
+              }}
+              type="submit"
+              disabled={loading}
             >
-              Login With Google
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Login"
+              )}
             </Button>
 
-          ) : (
-
-            <Box component="form" onSubmit={handleLogin}>
-
-              <TextField
-                fullWidth
-                label="Email"
-                margin="normal"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoFocus
-              />
-
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                margin="normal"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleLogin(e)
-                  }
-                }}
-              />
-
-              <Button
-                fullWidth
-                variant="contained"
-                sx={{
-                  mt: 2,
-                  py: 1.3,
-                  position: "relative",
-                  transition: "0.2s",
-                  transform: loading ? "scale(0.98)" : "scale(1)" // ✨ klik animasi
-                }}
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  "Login"
-                )}
-              </Button>
-
-            </Box>
-
-          )}
+          </Box>
 
         </CardContent>
       </Card>

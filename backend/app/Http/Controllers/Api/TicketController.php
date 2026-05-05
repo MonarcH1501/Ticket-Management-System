@@ -56,7 +56,8 @@ class TicketController extends Controller
             ->with([
                 'creator:id,name',
                 'department:id,name',
-                'pic:id,name'
+                'pic:id,name',
+                'unit:id,name'
             ])
             ->latest();
 
