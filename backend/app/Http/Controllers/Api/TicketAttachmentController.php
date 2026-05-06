@@ -15,13 +15,10 @@ class TicketAttachmentController extends Controller
         return 
             $user->hasRole('superadmin') ||
 
-            // creator
             $ticket->created_by === $user->id ||
 
-            // PIC
             $ticket->pic_id === $user->id ||
 
-            // 🔥 CURRENT WORKFLOW ACTOR (KEY!)
             $ticket->current_approver_id === $user->id;
     }
 
@@ -31,7 +28,7 @@ class TicketAttachmentController extends Controller
     public function store(Request $request, Ticket $ticket)
     {
         $request->validate([
-            'file' => 'required|file|max:5120|mimes:pdf,jpg,jpeg,png,docx,xlsx'
+            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,docx,xlsx'
         ]);
 
         $user = $request->user();

@@ -1,92 +1,63 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "../api/axios"
-
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography
-} from "@mui/material"
-
 import TicketForm from "../Components/TicketForm"
 
-export default function CreateTicket(){
-
+export default function CreateTicket() {
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const [loading,setLoading] = useState(false)
-
-  const handleCreateTicket = async (form,file)=>{
-
-    try{
-
+  const handleCreate = async (form, files) => {
+    try {
       setLoading(true)
 
-      const res = await api.post("/tickets",form)
-
+      // 1. Buat ticket
+      const res = await api.post("/tickets", form)
       const ticketId = res.data.data.id
 
-      if(file){
-
-        const formData = new FormData()
-        formData.append("file",file)
-
-        await api.post(
-          `/tickets/${ticketId}/attachments`,
-          formData,
-          { headers:{ "Content-Type":"multipart/form-data" } }
+      // 2. Upload file satu per satu (backend hanya terima 1 file per request)
+      if (files && files.length > 0) {
+        const results = await Promise.allSettled(
+          files.map(file => {
+            const fd = new FormData()
+            fd.append("file", file)
+            return api.post(`/tickets/${ticketId}/attachments`, fd, {
+              headers: { "Content-Type": "multipart/form-data" }
+            })
+          })
         )
 
+        const failed = results.filter(r => r.status === "rejected")
+        if (failed.length > 0) {
+          alert(`Ticket berhasil dibuat, tapi ${failed.length} file gagal diupload. Coba upload ulang di halaman detail ticket.`)
+        }
       }
 
       navigate("/tickets/alltickets")
-
-    }catch(err){
-
+    } catch (err) {
       console.error(err)
       alert("Failed to create ticket")
-
-    }finally{
-
+    } finally {
       setLoading(false)
-
     }
-
   }
 
-  return(
+  return (
+    <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px", fontFamily: "'DM Sans', sans-serif" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 4 }}>Ticketing</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>Create Ticket</div>
+        <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Submit a new support ticket to the relevant department</div>
+      </div>
 
-    <Box
-        sx={{
-          maxWidth: 1100,
-          mx: "auto",
-          width: "100%"
-        }}
-      >
-
-      <Typography
-        variant="h4"
-        sx={{ mb:3, fontWeight:600 }}
-      >
-        Create Ticket
-      </Typography>
-
-      <Card sx={{ borderRadius:3 }}>
-
-        <CardContent sx={{ p:5 }}>
-
-          <TicketForm
-            onSubmit={handleCreateTicket}
-            loading={loading}
-          />
-
-        </CardContent>
-
-      </Card>
-
-    </Box>
-
+      {/* Card */}
+      <div style={{
+        background: "#fff", borderRadius: 16, border: "1px solid #e2e8f0",
+        boxShadow: "0 1px 8px rgba(0,0,0,.06)", padding: "28px 32px"
+      }}>
+        <TicketForm onSubmit={handleCreate} loading={loading} />
+      </div>
+    </div>
   )
-
 }

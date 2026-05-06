@@ -28,18 +28,17 @@ class TicketService
             'ticket_code'         => $ticketCode,
             'title'               => $data['title'],
             'description'         => $data['description'],
-            'department_id'       => $data['department_id'],
+            'department_id'       => $data['department_id'],    
             'ticket_category_id'  => $data['ticket_category_id'],
             'created_by'          => $creator->id,
+            'unit_id'             => $creator->unit_id,
             'current_status'      => $initialStatus,
             'current_approver_id' => $initialApprover?->id,
             'priority'            => null,
         ]);
     }
 
-    /**
-     * Tentukan approver awal berdasarkan role creator
-     */
+
     protected function determineInitialApprover(User $creator, int $departmentId): ?User
     {   
 

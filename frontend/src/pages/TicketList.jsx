@@ -1,284 +1,151 @@
-// TicketList.jsx - Simple Frontend Filter
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "../api/axios"
-
-import {
-  Typography,
-  Card,
-  Box,
-  Button,
-  Stack,
-  TextField,
-  InputAdornment,
-  Chip,
-  Paper,
-  ToggleButton,
-  ToggleButtonGroup,
-  CircularProgress
-} from "@mui/material"
-
-import SearchIcon from "@mui/icons-material/Search"
-import ClearIcon from "@mui/icons-material/Clear"
-import AddIcon from "@mui/icons-material/Add"
-import CheckCircleIcon from "@mui/icons-material/CheckCircle"
-import PendingIcon from "@mui/icons-material/Pending"
+import { CircularProgress } from "@mui/material"
 import TicketTable from "../Components/TicketTable"
 
 export default function TicketList() {
-  const [allTickets, setAllTickets] = useState([])
+  const [allTickets, setAllTickets]           = useState([])
   const [filteredTickets, setFilteredTickets] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [filter, setFilter] = useState("UNCOMPLETED")
-  const [searchTerm, setSearchTerm] = useState("")
-  
+  const [loading, setLoading]                 = useState(false)
+  const [filter, setFilter]                   = useState("UNCOMPLETED")
+  const [searchTerm, setSearchTerm]           = useState("")
   const navigate = useNavigate()
 
-  // Fetch all tickets
+  // ── Fetch ALL pages ──────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchAllTickets()
+    const fetchAll = async () => {
+      setLoading(true)
+      try {
+        const first = await api.get("/tickets?page=1")
+        const totalPages = first.data.last_page ?? 1
+        let all = [...(first.data.data ?? first.data)]
+        for (let p = 2; p <= totalPages; p++) {
+          const res = await api.get(`/tickets?page=${p}`)
+          all.push(...(res.data.data ?? res.data))
+        }
+        setAllTickets(all)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAll()
   }, [])
 
-  // Filter tickets when filter or search changes
+  // ── Filter + Search ──────────────────────────────────────────────────────────
   useEffect(() => {
-    let filtered = [...allTickets]
-    
-    // Filter by status
-    if (filter === "COMPLETED") {
-      filtered = filtered.filter(t => t.current_status === "completed")
-    } else if (filter === "UNCOMPLETED") {
-      filtered = filtered.filter(t => t.current_status !== "completed")
-    }
-    
-    // Filter by search
+    let result = [...allTickets]
+    if (filter === "COMPLETED")   result = result.filter(t => t.current_status === "completed")
+    if (filter === "UNCOMPLETED") result = result.filter(t => t.current_status !== "completed")
     if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter(t => 
-        t.ticket_code?.toLowerCase().includes(searchLower) ||
-        t.title?.toLowerCase().includes(searchLower) ||
-        t.unit?.name?.toLowerCase().includes(searchLower)
+      const q = searchTerm.toLowerCase()
+      result = result.filter(t =>
+        t.ticket_code?.toLowerCase().includes(q) ||
+        t.title?.toLowerCase().includes(q) ||
+        t.unit?.name?.toLowerCase().includes(q)
       )
     }
-    
-    setFilteredTickets(filtered)
+    setFilteredTickets(result)
   }, [allTickets, filter, searchTerm])
 
-  const fetchAllTickets = async () => {
-    setLoading(true)
-    try {
-      // Fetch all pages
-      const firstPage = await api.get("/tickets?page=1")
-      const totalPages = firstPage.data.last_page
-      
-      let allData = [...(firstPage.data.data ?? firstPage.data)]
-      
-      for (let page = 2; page <= totalPages; page++) {
-        const res = await api.get(`/tickets?page=${page}`)
-        allData.push(...(res.data.data ?? res.data))
-      }
-      
-      setAllTickets(allData)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleFilterChange = (event, newFilter) => {
-    if (newFilter !== null) {
-      setFilter(newFilter)
-    }
-  }
-
-  const clearSearch = () => {
-    setSearchTerm("")
-  }
-
-  // Hitung jumlah based on status
   const uncompletedCount = allTickets.filter(t => t.current_status !== "completed").length
-  const completedCount = allTickets.filter(t => t.current_status === "completed").length
+  const completedCount   = allTickets.filter(t => t.current_status === "completed").length
+
+  const tabBtn = (active, activeColor = "#6366f1", activeBg = "#eef2ff") => ({
+    display: "flex", alignItems: "center", gap: 8,
+    padding: "8px 16px", borderRadius: 20, border: "none",
+    background: active ? activeBg : "transparent",
+    color: active ? activeColor : "#94a3b8",
+    fontWeight: 700, fontSize: 13, cursor: "pointer",
+    fontFamily: "inherit", transition: "all .15s"
+  })
 
   return (
-    <Box sx={{ p: 3, bgcolor: "#f8fafc", minHeight: "100vh" }}>
-      
-      {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a" }}>
-            Tickets
-          </Typography>
-          <Typography variant="body2" sx={{ color: "#64748b", mt: 0.5 }}>
-            Manage all support tickets
-          </Typography>
-        </Box>
-        
-        <Button
-          variant="contained"
-          onClick={() => navigate("/tickets/create")}
-          startIcon={<AddIcon />}
-          sx={{
-            textTransform: "none",
-            borderRadius: 2,
-            bgcolor: "#3b82f6",
-            "&:hover": { bgcolor: "#2563eb" }
-          }}
-        >
-          Create Ticket
-        </Button>
-      </Stack>
+    <div style={{ padding: "28px 24px", fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Filter & Search Bar */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          mb: 3,
-          borderRadius: 3,
-          border: "1px solid #e2e8f0",
-          backgroundColor: "white"
-        }}
-      >
-        <Stack spacing={2}>
-          {/* Toggle Buttons dengan Badge Counter */}
-          <ToggleButtonGroup
-            value={filter}
-            exclusive
-            onChange={handleFilterChange}
-            sx={{
-              "& .MuiToggleButton-root": {
-                border: "none",
-                px: 3,
-                py: 1,
-                textTransform: "none",
-                fontWeight: 500,
-                borderRadius: 2,
-                "&.Mui-selected": {
-                  bgcolor: filter === "UNCOMPLETED" ? "#3b82f6" : "#10b981",
-                  color: "white",
-                  "&:hover": { 
-                    bgcolor: filter === "UNCOMPLETED" ? "#2563eb" : "#059669" 
-                  }
-                }
-              }
-            }}
-          >
-            <ToggleButton value="UNCOMPLETED">
-              <Stack direction="row" spacing={1} alignItems="center">
-                <PendingIcon sx={{ fontSize: 18 }} />
-                <span>Uncompleted</span>
-                <Chip 
-                  label={uncompletedCount} 
-                  size="small"
-                  sx={{ 
-                    height: 20,
-                    bgcolor: filter === "UNCOMPLETED" ? "rgba(255,255,255,0.2)" : "#e2e8f0",
-                    color: filter === "UNCOMPLETED" ? "white" : "#475569"
-                  }} 
-                />
-              </Stack>
-            </ToggleButton>
+      {/* Page Header */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 4 }}>Ticketing</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Tickets</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>Manage all support tickets</div>
+        </div>
+        <button onClick={() => navigate("/tickets/create")} style={{
+          padding: "10px 20px", borderRadius: 10, border: "none",
+          background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+          fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+          boxShadow: "0 4px 14px rgba(99,102,241,.3)"
+        }}>
+          + Create Ticket
+        </button>
+      </div>
 
-            <ToggleButton value="COMPLETED">
-              <Stack direction="row" spacing={1} alignItems="center">
-                <CheckCircleIcon sx={{ fontSize: 18 }} />
-                <span>Completed</span>
-                <Chip 
-                  label={completedCount} 
-                  size="small"
-                  sx={{ 
-                    height: 20,
-                    bgcolor: filter === "COMPLETED" ? "rgba(255,255,255,0.2)" : "#e2e8f0",
-                    color: filter === "COMPLETED" ? "white" : "#475569"
-                  }} 
-                />
-              </Stack>
-            </ToggleButton>
-          </ToggleButtonGroup>
+      {/* Main Card */}
+      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 1px 8px rgba(0,0,0,.06)", overflow: "hidden" }}>
+
+        {/* Toolbar */}
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+
+          {/* Filter Tabs */}
+          <div style={{ display: "flex", background: "#f8fafc", borderRadius: 22, padding: 3, gap: 2 }}>
+            <button style={tabBtn(filter === "UNCOMPLETED")} onClick={() => setFilter("UNCOMPLETED")}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: filter === "UNCOMPLETED" ? "#6366f1" : "#cbd5e1" }} />
+              Uncompleted
+              <span style={{ padding: "1px 7px", borderRadius: 20, background: filter === "UNCOMPLETED" ? "#6366f1" : "#e2e8f0", color: filter === "UNCOMPLETED" ? "#fff" : "#94a3b8", fontSize: 11, fontWeight: 700 }}>
+                {uncompletedCount}
+              </span>
+            </button>
+            <button style={tabBtn(filter === "COMPLETED", "#22c55e", "#f0fdf4")} onClick={() => setFilter("COMPLETED")}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: filter === "COMPLETED" ? "#22c55e" : "#cbd5e1" }} />
+              Completed
+              <span style={{ padding: "1px 7px", borderRadius: 20, background: filter === "COMPLETED" ? "#22c55e" : "#e2e8f0", color: filter === "COMPLETED" ? "#fff" : "#94a3b8", fontSize: 11, fontWeight: 700 }}>
+                {completedCount}
+              </span>
+            </button>
+          </div>
 
           {/* Search */}
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Search by ticket code, title, or unit..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-                bgcolor: "#f8fafc"
-              }
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#94a3b8" }} />
-                </InputAdornment>
-              ),
-              endAdornment: searchTerm && (
-                <InputAdornment position="end">
-                  <ClearIcon 
-                    sx={{ cursor: "pointer", color: "#94a3b8" }} 
-                    onClick={clearSearch}
-                  />
-                </InputAdornment>
-              )
-            }}
-          />
-        </Stack>
-      </Paper>
+          <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
+            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>🔍</span>
+            <input
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search by ticket code, title, or unit..."
+              style={{ width: "100%", padding: "8px 36px 8px 34px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box", background: "#fafafa" }}
+              onFocus={e => (e.target.style.borderColor = "#6366f1")}
+              onBlur={e => (e.target.style.borderColor = "#e2e8f0")}
+            />
+            {searchTerm && (
+              <span onClick={() => setSearchTerm("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#94a3b8", fontSize: 18, lineHeight: 1 }}>×</span>
+            )}
+          </div>
 
-      {/* Stats */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography sx={{ fontWeight: 500, color: "#475569" }}>
-          Showing: <span style={{ fontWeight: 700, color: "#3b82f6" }}>{filteredTickets.length}</span> tickets
-          {filteredTickets.length !== allTickets.length && (
-            <span style={{ fontSize: "0.875rem", color: "#64748b" }}>
-              {" "}(from {allTickets.length} total)
-            </span>
-          )}
-        </Typography>
-        
-        {searchTerm && (
-          <Chip 
-            label={`Search: ${searchTerm}`} 
-            size="small" 
-            onDelete={clearSearch}
-            sx={{ borderRadius: 1.5 }}
-          />
-        )}
-      </Stack>
+          {/* Counter */}
+          <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, whiteSpace: "nowrap" }}>
+            Showing{" "}
+            <span style={{ color: "#6366f1" }}>{filteredTickets.length}</span>
+            {" "}of{" "}
+            <span style={{ color: "#6366f1" }}>{filter === "COMPLETED" ? completedCount : uncompletedCount}</span>
+          </div>
+        </div>
 
-      {/* Table */}
-      <Card
-        elevation={0}
-        sx={{
-          borderRadius: 3,
-          border: "1px solid #e2e8f0",
-          overflow: "hidden",
-          backgroundColor: "white"
-        }}
-      >
+        {/* Content */}
         {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-            <CircularProgress />
-          </Box>
+          <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+            <CircularProgress sx={{ color: "#6366f1" }} />
+          </div>
         ) : filteredTickets.length === 0 ? (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <Typography variant="h6" sx={{ color: "#64748b", mb: 1 }}>
-              No tickets found
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#94a3b8" }}>
-              {searchTerm ? "Try different search term" : `No ${filter.toLowerCase()} tickets`}
-            </Typography>
-          </Box>
+          <div style={{ textAlign: "center", padding: "48px 24px", color: "#94a3b8" }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>👀</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#475569", marginBottom: 4 }}>No tickets found</div>
+            <div style={{ fontSize: 13 }}>{searchTerm ? "Try a different search term" : `No ${filter.toLowerCase()} tickets`}</div>
+          </div>
         ) : (
-          <TicketTable 
-            tickets={filteredTickets} 
-            onView={(id) => navigate(`/tickets/${id}`)} 
-          />
+          <TicketTable tickets={filteredTickets} onView={id => navigate(`/tickets/${id}`)} />
         )}
-      </Card>
-    </Box>
+      </div>
+    </div>
   )
 }

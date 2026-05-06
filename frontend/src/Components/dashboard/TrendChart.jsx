@@ -1,136 +1,64 @@
 import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  useTheme
-} from "@mui/material";
+  ResponsiveContainer, LineChart, Line,
+  XAxis, YAxis, Tooltip, CartesianGrid
+} from "recharts"
 
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  CartesianGrid
-} from "recharts";
-
-// CustomTooltip dipindahkan ke luar komponen
 const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <Box
-        sx={{
-          bgcolor: 'background.paper',
-          border: `1px solid`,
-          borderColor: 'divider',
-          borderRadius: 1,
-          p: 1,
-          boxShadow: 1
-        }}
-      >
-        <Typography variant="body2" fontWeight="bold">
-          {label}
-        </Typography>
-        {payload.map((p, idx) => (
-          <Typography key={idx} variant="body2" color={p.color}>
-            {p.name}: {p.value} tickets
-          </Typography>
-        ))}
-      </Box>
-    );
-  }
-  return null;
-};
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10,
+      padding: "10px 14px", boxShadow: "0 4px 16px rgba(0,0,0,.08)",
+      fontFamily: "'DM Sans', sans-serif", fontSize: 13
+    }}>
+      <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, color: "#475569" }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
+          <span>{p.name}:</span>
+          <span style={{ fontWeight: 700, color: p.color }}>{p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function TrendChart({ data }) {
-  const theme = useTheme();
-
-  if (!data || data.length === 0) {
-    return (
-      <Card>
-        <CardContent>
-          <Typography sx={{ mb: 2, fontWeight: 600 }}>
-            Ticket Trends
-          </Typography>
-          <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-            No activity yet
-          </Typography>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const hasData = data.some(d => (d.created || 0) > 0 || (d.completed || 0) > 0);
-
-  if (!hasData) {
-    return (
-      <Card>
-        <CardContent>
-          <Typography sx={{ mb: 2, fontWeight: 600 }}>
-            Ticket Trends
-          </Typography>
-          <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-            No activity yet
-          </Typography>
-        </CardContent>
-      </Card>
-    );
-  }
+  const empty = !data?.length || !data.some(d => (d.created || 0) > 0 || (d.completed || 0) > 0)
 
   return (
-    <Card>
-      <CardContent>
-        <Typography sx={{ mb: 2, fontWeight: 600 }}>
-          Ticket Trends
-        </Typography>
+    <div style={{ width: "100%", height: "100%", fontFamily: "'DM Sans', sans-serif" }}>
+      {empty ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8, color: "#94a3b8" }}>
+          <div style={{ fontSize: 32 }}>📉</div>
+          <div style={{ fontSize: 13 }}>No activity yet</div>
+        </div>
+      ) : (
+        <>
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+            {[{ label: "Created", color: "#6366f1" }, { label: "Completed", color: "#22c55e" }].map(l => (
+              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#64748b", fontWeight: 600 }}>
+                <div style={{ width: 24, height: 2.5, borderRadius: 99, background: l.color }} />
+                {l.label}
+              </div>
+            ))}
+          </div>
 
-        <Box sx={{ height: 300 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke={theme.palette.divider}
-                vertical={false}
-              />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12 }}
-                stroke={theme.palette.text.secondary}
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                stroke={theme.palette.text.secondary}
-                allowDecimals={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="created"
-                name="Created"
-                stroke={theme.palette.primary.main}
-                strokeWidth={2}
-                dot={{ r: 4, strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="completed"
-                name="Completed"
-                stroke={theme.palette.success.main}
-                strokeWidth={2}
-                dot={{ r: 4, strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
-              />
+          <ResponsiveContainer width="100%" height="85%">
+            <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8", fontFamily: "'DM Sans', sans-serif" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#94a3b8", fontFamily: "'DM Sans', sans-serif" }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }} />
+              <Line type="monotone" dataKey="created" name="Created" stroke="#6366f1" strokeWidth={2.5}
+                dot={{ r: 3, fill: "#6366f1", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#6366f1", stroke: "#e0e7ff", strokeWidth: 3 }} />
+              <Line type="monotone" dataKey="completed" name="Completed" stroke="#22c55e" strokeWidth={2.5}
+                dot={{ r: 3, fill: "#22c55e", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#22c55e", stroke: "#dcfce7", strokeWidth: 3 }} />
             </LineChart>
           </ResponsiveContainer>
-        </Box>
-      </CardContent>
-    </Card>
-  );
+        </>
+      )}
+    </div>
+  )
 }
