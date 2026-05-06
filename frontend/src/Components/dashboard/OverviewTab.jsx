@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import api from "../../api/axios"
 import { CircularProgress } from "@mui/material"
 
-import StatCard from "./StatCard"
 import DashboardChart from "./DashboardChart"
 import RecentTickets from "./RecentTickets"
 
@@ -10,15 +9,20 @@ export default function OverviewTab() {
   const [summary, setSummary] = useState(null)
   const [trends, setTrends]   = useState([])
   const [recent, setRecent]   = useState([])
+  const [todo, setTodo]       = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       api.get("/tickets/summary"),
       api.get("/tickets/trends"),
-      api.get("/tickets/recent")
-    ]).then(([s, t, r]) => {
-      setSummary(s.data); setTrends(t.data); setRecent(r.data)
+      api.get("/tickets/recent"),
+      api.get("/tickets/my-tasks")
+    ]).then(([s, t, r, m]) => {
+      setSummary(s.data)
+      setTrends(t.data)
+      setRecent(r.data)
+      setTodo(m.data?.todo ?? [])
     }).catch(console.error).finally(() => setLoading(false))
 
     setTimeout(() => window.dispatchEvent(new Event("resize")), 100)
@@ -31,16 +35,16 @@ export default function OverviewTab() {
     </div>
   )
 
-  const total     = summary?.overview?.total ?? 0
-  const completed = summary?.overview?.completed ?? 0
-  const approval  = summary?.my_action?.need_my_approval ?? 0
-  const progress  = total - completed - approval
+  const total      = summary?.overview?.total     ?? 0
+  const completed  = summary?.overview?.completed ?? 0
+  const approval   = todo.length
+  const inProgress = total - completed - approval
 
   const stats = [
-    { title: "Total Tickets", value: total,     color: "#6366f1", shadow: "#e0e7ff", icon: "🎫" },
-    { title: "In Progress",   value: progress,  color: "#0ea5e9", shadow: "#e0f2fe", icon: "⚡" },
-    { title: "Completed",     value: completed, color: "#22c55e", shadow: "#dcfce7", icon: "✓"  },
-    { title: "Need Approval", value: approval,  color: "#f59e0b", shadow: "#fef3c7", icon: "⏳" }
+    { title: "Total Tickets", value: total,      color: "#6366f1", shadow: "#e0e7ff", icon: "🎫" },
+    { title: "In Progress",   value: inProgress, color: "#0ea5e9", shadow: "#e0f2fe", icon: "⚡" },
+    { title: "Completed",     value: completed,  color: "#22c55e", shadow: "#dcfce7", icon: "✓"  },
+    { title: "Need Approval", value: approval,   color: "#f59e0b", shadow: "#fef3c7", icon: "⏳" }
   ]
 
   const card = {

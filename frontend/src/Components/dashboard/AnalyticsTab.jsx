@@ -1,22 +1,21 @@
-import { useEffect, useState } from "react";
-import api from "../../api/axios";
-import { Box, Typography, CircularProgress } from "@mui/material";
+import { useEffect, useState } from "react"
+import api from "../../api/axios"
 
-import DepartmentChart from "./DepartmentChart";
-import StatusChart from "./StatusChart";
-import MetricsCards from "./MetricsCards";
-import TrendChart from "./TrendChart";
+import DepartmentChart from "./DepartmentChart"
+import StatusChart from "./StatusChart"
+import MetricsCards from "./MetricsCards"
+import TrendChart from "./TrendChart"
 
 export default function AnalyticsTab() {
-  const [department, setDepartment] = useState([]);
-  const [status, setStatus] = useState([]);
-  const [metrics, setMetrics] = useState(null);
-  const [trends, setTrends] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [department, setDepartment] = useState([])
+  const [status, setStatus]         = useState([])
+  const [metrics, setMetrics]       = useState(null)
+  const [trends, setTrends]         = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
 
   useEffect(() => {
-    let isMounted = true;
+    let isMounted = true
 
     Promise.all([
       api.get("/tickets/by-department"),
@@ -26,86 +25,81 @@ export default function AnalyticsTab() {
     ])
       .then(([deptRes, statusRes, metricsRes, trendsRes]) => {
         if (isMounted) {
-          setDepartment(deptRes.data || []);
-          setStatus(statusRes.data || []);
-          setMetrics(metricsRes.data || null);
-          setTrends(trendsRes.data || []);
-          setLoading(false);
+          setDepartment(deptRes.data || [])
+          setStatus(statusRes.data || [])
+          setMetrics(metricsRes.data || null)
+          setTrends(trendsRes.data || [])
+          setLoading(false)
         }
       })
-      .catch((err) => {
+      .catch(err => {
         if (isMounted) {
-          console.error(err);
-          setError("Failed to load analytics data");
-          setLoading(false);
+          console.error(err)
+          setError("Failed to load analytics data")
+          setLoading(false)
         }
-      });
+      })
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    return () => { isMounted = false }
+  }, [])
 
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 500 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 500 }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: 36, height: 36, border: "3px solid #e2e8f0",
+          borderTopColor: "#6366f1", borderRadius: "50%",
+          animation: "spin .7s linear infinite", margin: "0 auto 12px"
+        }} />
+        <div style={{ fontSize: 13, color: "#94a3b8" }}>Loading analytics...</div>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
 
-  if (error) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 500 }}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
+  if (error) return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 500 }}>
+      <div style={{
+        padding: "14px 20px", borderRadius: 10,
+        background: "#fef2f2", border: "1px solid #fecaca",
+        fontSize: 13, color: "#dc2626"
+      }}>
+        ⚠️ {error}
+      </div>
+    </div>
+  )
 
   return (
-    <Box sx={{ width: "100%" }}>
-      
-      {/* TITLE */}
-      <Typography variant="h5" sx={{ mb: 4, fontWeight: 600 }}>
-        Analytics Dashboard
-      </Typography>
+    <div style={{ width: "100%", fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* 🟢 METRICS (3 COLUMN GRID) */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            md: "repeat(3, 1fr)"
-          },
-          gap: 3,
-          mb: 3
-        }}
-      >
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 4 }}>Overview</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Analytics Dashboard</div>
+      </div>
+
+      {/* Metrics row */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: 16, marginBottom: 20
+      }}>
         <MetricsCards data={metrics} />
-      </Box>
+      </div>
 
-      {/* 🟡 CHART ROW (2 COLUMN) */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            md: "1fr 1fr"
-          },
-          gap: 3,
-          mb: 3
-        }}
-      >
+      {/* Charts row */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        gap: 16, marginBottom: 20
+      }}>
         <DepartmentChart data={department} />
         <StatusChart data={status} />
-      </Box>
+      </div>
 
-      {/* 🔵 TREND FULL WIDTH */}
-      <Box>
-        <TrendChart data={trends} />
-      </Box>
+      {/* Trend full width */}
+      <TrendChart data={trends} />
 
-    </Box>
-  );
+    </div>
+  )
 }
