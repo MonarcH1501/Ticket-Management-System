@@ -16,7 +16,8 @@ class TicketAttachment extends Model
         'file_name',
         'mime_type',
         'uploaded_by',
-        'soft_deleted_by'
+        'soft_deleted_by',
+        'stage',
     ];
 
     public function ticket()

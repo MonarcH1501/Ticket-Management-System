@@ -25,10 +25,12 @@ class TicketAttachmentController extends Controller
     /**
      * 📤 Upload Attachment
      */
+    // store() — terima stage dari request
     public function store(Request $request, Ticket $ticket)
     {
         $request->validate([
-            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,docx,xlsx'
+            'file'  => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,docx,xlsx',
+            'stage' => 'nullable|string|in:initial,in_progress,approval,complete',
         ]);
 
         $user = $request->user();
@@ -38,8 +40,7 @@ class TicketAttachmentController extends Controller
         }
 
         $file = $request->file('file');
-
-        $path = $file->store('tickets/'.$ticket->id, 'public');
+        $path = $file->store('tickets/' . $ticket->id, 'public');
 
         $attachment = TicketAttachment::create([
             'ticket_id'   => $ticket->id,
@@ -47,19 +48,18 @@ class TicketAttachmentController extends Controller
             'file_name'   => $file->getClientOriginalName(),
             'mime_type'   => $file->getMimeType(),
             'uploaded_by' => $user->id,
+            'stage'       => $request->input('stage', 'initial'), // ← default initial
         ]);
 
         return response()->json([
             'message' => 'File uploaded successfully',
-            'data' => $attachment
+            'data'    => $attachment
         ], 201);
     }
 
-    /**
-     * 📥 List Attachments
-     */
+    // index() — return dengan stage info
     public function index(Request $request, Ticket $ticket)
-    {   
+    {
         $user = $request->user();
 
         if (!$this->canAccessTicket($user, $ticket)) {
@@ -69,7 +69,8 @@ class TicketAttachmentController extends Controller
         $attachments = $ticket->attachments()
             ->with('uploader:id,name')
             ->latest()
-            ->get();
+            ->get()
+            ->groupBy('stage'); // ← grouped by stage
 
         return response()->json($attachments);
     }

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import api from "../api/axios"
 import { PRIMARY, PRIMARY_BG, PRIMARY_BORDER } from "../theme/colors"
 
-// ── helpers ───────────────────────────────────────────────────────────────────
 const Label = ({ children }) => (
   <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 600, color: "#64748b", letterSpacing: ".06em", textTransform: "uppercase" }}>
     {children}
@@ -71,20 +70,23 @@ function ApprovalBlock({ label, loading, notes, setNotes, onApprove, onReject })
   )
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function TicketActions({ ticket, refresh }) {
-  const [user, setUser]           = useState(null)
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState(null)
-  const [file, setFile]           = useState(null)
-  const [pics, setPics]           = useState([])
+  const [user, setUser]               = useState(null)
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState(null)
+  const [file, setFile]               = useState(null)
+  const [fileError, setFileError]     = useState("")
+  const [pics, setPics]               = useState([])
   const [selectedPic, setSelectedPic] = useState("")
-  const [priority, setPriority]   = useState("medium")
-  const [dueDate, setDueDate]     = useState("")
+  const [priority, setPriority]       = useState("medium")
+  const [dueDate, setDueDate]         = useState("")
   const [notesAssign, setNotesAssign] = useState("")
-  const [notesUnit, setNotesUnit]   = useState("")
-  const [notesDept, setNotesDept]   = useState("")
+  const [notesUnit, setNotesUnit]     = useState("")
+  const [notesDept, setNotesDept]     = useState("")
   const [notesReview, setNotesReview] = useState("")
+
+  const MAX_SIZE_MB    = 10
+  const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
   useEffect(() => {
     api.get("/user").then(r => setUser(r.data.data ?? r.data)).catch(console.error)
@@ -93,7 +95,9 @@ export default function TicketActions({ ticket, refresh }) {
   useEffect(() => {
     const deptId = ticket?.department?.id
     if (!deptId) return
-    api.get(`/users?role=pic&department_id=${deptId}`).then(r => setPics(r.data.data ?? r.data)).catch(console.error)
+    api.get(`/users?role=pic&department_id=${deptId}`)
+      .then(r => setPics(r.data.data ?? r.data))
+      .catch(console.error)
   }, [ticket])
 
   const handleAction = async (url, data = {}, resetFn) => {
@@ -103,15 +107,38 @@ export default function TicketActions({ ticket, refresh }) {
     finally { setLoading(false) }
   }
 
+  const handleFileChange = e => {
+    setFileError("")
+    const picked = e.target.files[0]
+    if (!picked) return
+    if (picked.size > MAX_SIZE_BYTES) {
+      setFileError(`File melebihi ${MAX_SIZE_MB}MB`); e.target.value = ""; return
+    }
+    setFile(picked); e.target.value = ""
+  }
+
   const handleSubmitWithFile = async () => {
     setLoading(true); setError(null)
     try {
-      const fd = new FormData()
-      if (file) fd.append("file", file)
-      await api.post(`/tickets/${ticket.id}/submit`, fd, { headers: { "Content-Type": "multipart/form-data" } })
+      // 1. Upload attachment dengan stage in_progress (jika ada file)
+      if (file) {
+        const fd = new FormData()
+        fd.append("file", file)
+        fd.append("stage", "in_progress")
+        await api.post(`/tickets/${ticket.id}/attachments`, fd, {
+          headers: { "Content-Type": "multipart/form-data" }
+        })
+      }
+
+      // 2. Submit work
+      await api.post(`/tickets/${ticket.id}/submit`)
+
       setFile(null); refresh()
-    } catch (e) { setError(e.response?.data?.message || "Submit gagal") }
-    finally { setLoading(false) }
+    } catch (e) {
+      setError(e.response?.data?.message || "Submit gagal")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const status       = (ticket.current_status || "").toLowerCase()
@@ -151,10 +178,12 @@ export default function TicketActions({ ticket, refresh }) {
         {isApprover && isUnit && (
           <ApprovalBlock label="Waiting for your unit approval"
             loading={loading} notes={notesUnit} setNotes={setNotesUnit}
-            onApprove={() => handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "approve", notes: notesUnit }, () => setNotesUnit(""))}
+            onApprove={() => handleAction(`/tickets/${ticket.id}/unit-approval`,
+              { action: "approve", notes: notesUnit }, () => setNotesUnit(""))}
             onReject={() => {
               if (!notesUnit) return setError("Notes wajib diisi saat reject")
-              handleAction(`/tickets/${ticket.id}/unit-approval`, { action: "reject", notes: notesUnit }, () => setNotesUnit(""))
+              handleAction(`/tickets/${ticket.id}/unit-approval`,
+                { action: "reject", notes: notesUnit }, () => setNotesUnit(""))
             }}
           />
         )}
@@ -163,10 +192,12 @@ export default function TicketActions({ ticket, refresh }) {
         {isApprover && isDept && (
           <ApprovalBlock label="Waiting for your department approval"
             loading={loading} notes={notesDept} setNotes={setNotesDept}
-            onApprove={() => handleAction(`/tickets/${ticket.id}/department-approval`, { action: "approve", notes: notesDept }, () => setNotesDept(""))}
+            onApprove={() => handleAction(`/tickets/${ticket.id}/department-approval`,
+              { action: "approve", notes: notesDept }, () => setNotesDept(""))}
             onReject={() => {
               if (!notesDept) return setError("Notes wajib diisi saat reject")
-              handleAction(`/tickets/${ticket.id}/department-approval`, { action: "reject", notes: notesDept }, () => setNotesDept(""))
+              handleAction(`/tickets/${ticket.id}/department-approval`,
+                { action: "reject", notes: notesDept }, () => setNotesDept(""))
             }}
           />
         )}
@@ -179,7 +210,8 @@ export default function TicketActions({ ticket, refresh }) {
             <div>
               <Label>PIC</Label>
               <select value={selectedPic} onChange={e => setSelectedPic(e.target.value)} style={selectStyle}
-                onFocus={e => (e.target.style.borderColor = PRIMARY)} onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}>
+                onFocus={e => (e.target.style.borderColor = PRIMARY)}
+                onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}>
                 <option value="" disabled>Select PIC...</option>
                 {pics.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -188,8 +220,9 @@ export default function TicketActions({ ticket, refresh }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
                 <Label>Priority</Label>
-                <select value={priority} onChange={e => setPriority(e.target.value)} style={{ ...selectStyle }}
-                  onFocus={e => (e.target.style.borderColor = PRIMARY)} onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}>
+                <select value={priority} onChange={e => setPriority(e.target.value)} style={selectStyle}
+                  onFocus={e => (e.target.style.borderColor = PRIMARY)}
+                  onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}>
                   <option value="low">🟢 Low</option>
                   <option value="medium">🟡 Medium</option>
                   <option value="high">🔴 High</option>
@@ -198,7 +231,8 @@ export default function TicketActions({ ticket, refresh }) {
               <div>
                 <Label>Due Date</Label>
                 <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={inputStyle}
-                  onFocus={e => (e.target.style.borderColor = PRIMARY)} onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)} />
+                  onFocus={e => (e.target.style.borderColor = PRIMARY)}
+                  onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)} />
               </div>
             </div>
 
@@ -220,17 +254,36 @@ export default function TicketActions({ ticket, refresh }) {
         {isPIC && isInProgress && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={sectionStyle}>Submit your work result</div>
+
             <label style={{
               display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-              border: `1.5px dashed ${PRIMARY_BORDER}`, borderRadius: 8, cursor: "pointer",
-              background: file ? "#f0fdf4" : PRIMARY_BG, transition: "background .15s"
+              border: `1.5px dashed ${file ? "#86efac" : PRIMARY_BORDER}`, borderRadius: 8,
+              cursor: "pointer", background: file ? "#f0fdf4" : PRIMARY_BG, transition: "background .15s"
             }}>
               <span style={{ fontSize: 18 }}>📎</span>
-              <span style={{ fontSize: 13, color: file ? "#16a34a" : "#0369a1" }}>
-                {file ? file.name : "Click to attach a file"}
-              </span>
-              <input type="file" hidden onChange={e => setFile(e.target.files[0])} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 13, color: file ? "#16a34a" : "#0369a1", fontWeight: file ? 600 : 400 }}>
+                  {file ? file.name : "Click to attach a file (optional)"}
+                </span>
+                {!file && (
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Maks. {MAX_SIZE_MB}MB</div>
+                )}
+              </div>
+              {file && (
+                <span
+                  onClick={e => { e.preventDefault(); setFile(null); setFileError("") }}
+                  style={{ fontSize: 18, color: "#f87171", lineHeight: 1, cursor: "pointer", flexShrink: 0 }}
+                >×</span>
+              )}
+              <input type="file" hidden onChange={handleFileChange} />
             </label>
+
+            {fileError && (
+              <div style={{ padding: "8px 12px", borderRadius: 7, background: "#fef2f2", border: "1px solid #fecaca", fontSize: 12, color: "#dc2626" }}>
+                ⚠️ {fileError}
+              </div>
+            )}
+
             <BtnPrimary disabled={loading} onClick={handleSubmitWithFile} color="#8b5cf6">
               Submit Work
             </BtnPrimary>
@@ -243,12 +296,14 @@ export default function TicketActions({ ticket, refresh }) {
             <div style={sectionStyle}>Review result from PIC</div>
             <NotesField value={notesReview} onChange={setNotesReview} />
             <BtnPrimary disabled={loading} color="#22c55e"
-              onClick={() => handleAction(`/tickets/${ticket.id}/department-review`, { action: "approve", notes: notesReview }, () => setNotesReview(""))}>
+              onClick={() => handleAction(`/tickets/${ticket.id}/department-review`,
+                { action: "approve", notes: notesReview }, () => setNotesReview(""))}>
               ✓ Approve & Close
             </BtnPrimary>
             <BtnOutline disabled={loading} onClick={() => {
               if (!notesReview) return setError("Notes wajib diisi saat reject")
-              handleAction(`/tickets/${ticket.id}/department-review`, { action: "reject", notes: notesReview }, () => setNotesReview(""))
+              handleAction(`/tickets/${ticket.id}/department-review`,
+                { action: "reject", notes: notesReview }, () => setNotesReview(""))
             }}>✕ Reject (Back to PIC)</BtnOutline>
           </div>
         )}
