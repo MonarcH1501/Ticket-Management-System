@@ -1,379 +1,260 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../api/axios';
-
+import { useState, useEffect } from 'react'
+import api from '../../api/axios'
+import { CircularProgress } from '@mui/material'
 import {
-  Box, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, Button, Dialog,
-  DialogTitle, DialogContent, DialogActions,
-  TextField, Chip, Select, MenuItem, Checkbox,
-  ListItemText, Typography, IconButton, Stack,
-  Alert, Snackbar, Avatar, Tooltip, CircularProgress,
-  FormControl, InputLabel
-} from '@mui/material';
+  PRIMARY, PRIMARY_DARK, PRIMARY_BG, PRIMARY_BORDER, PRIMARY_TEXT,
+  GRADIENT, SHADOW, FOCUS_COLOR
+} from '../../theme/colors'
 
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CloseIcon from '@mui/icons-material/Close';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+const inputStyle = {
+  width: "100%", padding: "9px 12px", fontSize: 13,
+  borderRadius: 8, border: `1.5px solid ${PRIMARY_BORDER}`,
+  background: "#f0f9ff", color: "#0c4a6e", outline: "none",
+  boxSizing: "border-box", fontFamily: "inherit", transition: "border-color .15s"
+}
+const selectStyle = {
+  ...inputStyle,
+  appearance: "none",
+  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
+  backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32
+}
+const focus = e => (e.target.style.borderColor = FOCUS_COLOR)
+const blur  = e => (e.target.style.borderColor = PRIMARY_BORDER)
+
+const Label = ({ children }) => (
+  <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 5 }}>{children}</div>
+)
+const initials = name => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'
+const getColor = name => [PRIMARY, PRIMARY_DARK, "#22c55e", "#f59e0b", "#ec4899", "#8b5cf6"][(name?.charCodeAt(0) || 0) % 6]
 
 export default function UsersTab({ users, roles, refresh }) {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState('create');
-  const [formData, setFormData] = useState({ 
-    name: '', 
-    email: '', 
-    password: '',
-    unit_id: '',
-    department_id: '',
-    position_id: ''
-  });
-  const [selectedRoles, setSelectedRoles] = useState([]);
-  const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  // Data untuk dropdown
-  const [units, setUnits] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [positions, setPositions] = useState([]);
+  const [open, setOpen]               = useState(false)
+  const [mode, setMode]               = useState('create')
+  const [formData, setFormData]       = useState({ name:'', email:'', password:'', unit_id:'', department_id:'', position_id:'' })
+  const [selectedRoles, setSelectedRoles] = useState([])
+  const [showPw, setShowPw]           = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [toast, setToast]             = useState(null)
+  const [units, setUnits]             = useState([])
+  const [departments, setDepartments] = useState([])
+  const [positions, setPositions]     = useState([])
 
-  // Fetch units, departments, positions
   useEffect(() => {
-    fetchUnits();
-    fetchDepartments();
-    fetchPositions();
-  }, []);
+    const parse = r => { const d = r.data?.data ?? r.data; return Array.isArray(d) ? d : [] }
+    api.get('/units').then(r => setUnits(parse(r))).catch(console.error)
+    api.get('/departments').then(r => setDepartments(parse(r))).catch(console.error)
+    api.get('/positions').then(r => setPositions(parse(r))).catch(console.error)
+  }, [])
 
-  const fetchUnits = async () => {
-    try {
-      const res = await api.get('/units');
-      setUnits(res.data.data || res.data);
-    } catch (err) {
-      console.error('Failed to fetch units:', err);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await api.get('/departments');
-      setDepartments(res.data.data || res.data);
-    } catch (err) {
-      console.error('Failed to fetch departments:', err);
-    }
-  };
-
-  const fetchPositions = async () => {
-    try {
-      const res = await api.get('/positions');
-      setPositions(res.data.data || res.data);
-    } catch (err) {
-      console.error('Failed to fetch positions:', err);
-    }
-  };
+  useEffect(() => {
+    if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t) }
+  }, [toast])
 
   const openCreate = () => {
-    setMode('create');
-    setFormData({ 
-      name: '', 
-      email: '', 
-      password: '',
-      unit_id: '',
-      department_id: '',
-      position_id: ''
-    });
-    setSelectedRoles([]);
-    setOpen(true);
-  };
+    setMode('create')
+    setFormData({ name:'', email:'', password:'', unit_id:'', department_id:'', position_id:'' })
+    setSelectedRoles([]); setShowPw(false); setOpen(true)
+  }
 
-  const openEdit = (user) => {
-    setMode('edit');
-    setFormData({ 
-      id: user.id,
-      name: user.name, 
-      email: user.email,
-      unit_id: user.unit_id || '',
-      department_id: user.department_id || '',
-      position_id: user.position_id || ''
-    });
-    setSelectedRoles(user.roles?.map(r => r.name) || []);
-    setOpen(true);
-  };
+  const openEdit = user => {
+    setMode('edit')
+    setFormData({ id: user.id, name: user.name, email: user.email, unit_id: user.unit_id || '', department_id: user.department_id || '', position_id: user.position_id || '' })
+    setSelectedRoles(user.roles?.map(r => r.name) || [])
+    setShowPw(false); setOpen(true)
+  }
 
-  const closeDialog = () => {
-    setOpen(false);
-    setFormData({});
-    setSelectedRoles([]);
-    setMessage('');
-    setLoading(false);
-  };
+  const close = () => { setOpen(false); setFormData({}); setSelectedRoles([]); setLoading(false) }
 
-  const saveUser = async () => {
-    setLoading(true);
+  const save = async () => {
+    if (!formData.name || !formData.email) {
+      setToast({ text: "Name and email are required", ok: false }); return
+    }
+    if (mode === 'create' && !formData.password) {
+      setToast({ text: "Password is required", ok: false }); return
+    }
+    setLoading(true)
     try {
       if (mode === 'create') {
-        // Create user with unit, department, position
-        await api.post('/admin/users', {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
+        const res = await api.post('/admin/users', {
+          name: formData.name, email: formData.email, password: formData.password,
           unit_id: formData.unit_id || null,
           department_id: formData.department_id || null,
           position_id: formData.position_id || null
-        });
-        
-        setMessage({ text: 'User created successfully!', severity: 'success' });
-      } else {
-        // Update user
-        await api.put(`/admin/users/${formData.id}`, {
-          name: formData.name,
-          email: formData.email,
-          unit_id: formData.unit_id || null,
-          department_id: formData.department_id || null,
-          position_id: formData.position_id || null
-        });
-        
-        // Sync roles if needed
+        })
         if (selectedRoles.length > 0) {
-          await api.post(`/admin/users/${formData.id}/roles`, {
-            roles: selectedRoles
-          });
+          await api.post(`/admin/users/${res.data.id}/sync-roles`, { roles: selectedRoles })
         }
-        
-        setMessage({ text: 'User updated successfully!', severity: 'success' });
+        setToast({ text: "User created!", ok: true })
+      } else {
+        await api.put(`/admin/users/${formData.id}`, {
+          name: formData.name, email: formData.email,
+          unit_id: formData.unit_id || null,
+          department_id: formData.department_id || null,
+          position_id: formData.position_id || null
+        })
+        await api.post(`/admin/users/${formData.id}/sync-roles`, { roles: selectedRoles })
+        setToast({ text: "User updated!", ok: true })
       }
-      
-      await refresh();
-      closeDialog();
+      await refresh(); close()
     } catch (err) {
-      console.error('Save user error:', err);
-      setMessage({ 
-        text: err.response?.data?.message || 'Operation failed', 
-        severity: 'error' 
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      const msg = err.response?.data?.message || Object.values(err.response?.data || {}).flat().join(', ') || "Operation failed"
+      setToast({ text: msg, ok: false })
+    } finally { setLoading(false) }
+  }
 
-  const deleteUser = async (user) => {
-    if (window.confirm(`Delete "${user.name}"?`)) {
-      try {
-        await api.delete(`/admin/users/${user.id}`);
-        await refresh();
-        setMessage({ text: 'User deleted!', severity: 'success' });
-      } catch {
-        setMessage({ text: 'Delete failed', severity: 'error' });
-      }
-    }
-  };
+  const del = async user => {
+    if (!window.confirm(`Delete "${user.name}"?`)) return
+    try {
+      await api.delete(`/admin/users/${user.id}`)
+      setToast({ text: "User deleted", ok: true }); await refresh()
+    } catch { setToast({ text: "Delete failed", ok: false }) }
+  }
 
-  const getInitials = (name) => {
-    return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
-  };
+  const toggleRole = name => setSelectedRoles(p => p.includes(name) ? p.filter(x => x !== name) : [...p, name])
 
   return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h6" fontWeight={600}>Users</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={openCreate}
-          sx={{ textTransform: 'none', borderRadius: 2 }}
-        >
-          Create User
-        </Button>
-      </Stack>
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16, color: "#0c4a6e" }}>Users</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Manage system users</div>
+        </div>
+        <button onClick={openCreate} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: GRADIENT, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", boxShadow: SHADOW }}>
+          + Create User
+        </button>
+      </div>
 
-      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-        <Table>
-          <TableHead sx={{ bgcolor: '#f8fafc' }}>
-            <TableRow>
-              <TableCell>User</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Unit</TableCell>
-              <TableCell>Department</TableCell>
-              <TableCell>Roles</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map(user => (
-              <TableRow key={user.id} hover>
-                <TableCell>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#3b82f6' }}>
-                      {getInitials(user.name)}
-                    </Avatar>
-                    <Typography fontWeight={500}>{user.name}</Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.unit?.name || '-'}</TableCell>
-                <TableCell>{user.department?.name || '-'}</TableCell>
-                <TableCell>
-                  {user.roles?.map(role => (
-                    <Chip key={role.id} label={role.name} size="small" sx={{ mr: 0.5 }} />
-                  ))}
-                </TableCell>
-                <TableCell align="right">
-                  <Tooltip title="Edit">
-                    <IconButton size="small" onClick={() => openEdit(user)} sx={{ mr: 1 }}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton size="small" onClick={() => deleteUser(user)} color="error">
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
+      {/* Table */}
+      <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${PRIMARY_BORDER}`, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "#f0f9ff" }}>
+              {["User","Email","Unit","Department","Roles","Actions"].map(h => (
+                <th key={h} style={{ padding: "11px 16px", textAlign: "left", fontWeight: 700, fontSize: 11, color: PRIMARY_TEXT, letterSpacing: ".06em", textTransform: "uppercase", borderBottom: `1px solid ${PRIMARY_BORDER}` }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user, i) => (
+              <tr key={user.id} style={{ borderBottom: i < users.length - 1 ? `1px solid ${PRIMARY_BG}` : "none" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <td style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: getColor(user.name), display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
+                      {initials(user.name)}
+                    </div>
+                    <span style={{ fontWeight: 600, color: "#0c4a6e" }}>{user.name}</span>
+                  </div>
+                </td>
+                <td style={{ padding: "12px 16px", color: "#64748b" }}>{user.email}</td>
+                <td style={{ padding: "12px 16px", color: "#64748b" }}>{user.unit?.name || "-"}</td>
+                <td style={{ padding: "12px 16px", color: "#64748b" }}>{user.department?.name || "-"}</td>
+                <td style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {user.roles?.map(r => (
+                      <span key={r.id} style={{ padding: "2px 8px", borderRadius: 20, background: PRIMARY_BG, color: PRIMARY_TEXT, fontSize: 11, fontWeight: 700 }}>{r.name}</span>
+                    ))}
+                  </div>
+                </td>
+                <td style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => openEdit(user)} style={{ padding: "5px 12px", borderRadius: 6, border: `1.5px solid ${PRIMARY_BORDER}`, background: "#fff", color: PRIMARY, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = PRIMARY_BG)} onMouseLeave={e => (e.currentTarget.style.background = "#fff")}>Edit</button>
+                    <button onClick={() => del(user)} style={{ padding: "5px 12px", borderRadius: 6, border: "1.5px solid #fee2e2", background: "#fff", color: "#dc2626", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#fef2f2")} onMouseLeave={e => (e.currentTarget.style.background = "#fff")}>Delete</button>
+                  </div>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+        {users.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#64748b", fontSize: 13 }}>No users found</div>}
+      </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={open} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography fontWeight={600}>
-              {mode === 'create' ? 'Create User' : 'Edit User'}
-            </Typography>
-            <IconButton onClick={closeDialog} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-        </DialogTitle>
+      {/* Modal */}
+      {open && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}
+          onClick={e => e.target === e.currentTarget && close()}>
+          <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,.15)", overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${PRIMARY_BG}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+              <span style={{ fontWeight: 800, fontSize: 15, color: "#0c4a6e" }}>{mode === 'create' ? 'Create User' : 'Edit User'}</span>
+              <button onClick={close} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#94a3b8", lineHeight: 1 }}>×</button>
+            </div>
 
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Name"
-              value={formData.name || ''}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              size="small"
-            />
-            
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={formData.email || ''}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              size="small"
-            />
-            
-            {mode === 'create' && (
-              <TextField
-                fullWidth
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password || ''}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                size="small"
-                InputProps={{
-                  endAdornment: (
-                    <IconButton size="small" onClick={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                    </IconButton>
-                  )
-                }}
-              />
-            )}
+            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
+              <div>
+                <Label>Name *</Label>
+                <input value={formData.name || ''} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} style={inputStyle} onFocus={focus} onBlur={blur} placeholder="Full name" />
+              </div>
+              <div>
+                <Label>Email *</Label>
+                <input type="email" value={formData.email || ''} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} style={inputStyle} onFocus={focus} onBlur={blur} placeholder="email@example.com" />
+              </div>
+              {mode === 'create' && (
+                <div>
+                  <Label>Password *</Label>
+                  <div style={{ position: "relative" }}>
+                    <input type={showPw ? "text" : "password"} value={formData.password || ''} onChange={e => setFormData(p => ({ ...p, password: e.target.value }))} style={{ ...inputStyle, paddingRight: 40 }} onFocus={focus} onBlur={blur} placeholder="Min 8 characters" />
+                    <span onClick={() => setShowPw(p => !p)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", cursor: "pointer", fontSize: 15, color: "#94a3b8" }}>{showPw ? "🙈" : "👁️"}</span>
+                  </div>
+                </div>
+              )}
+              <div>
+                <Label>Unit</Label>
+                <select value={formData.unit_id || ''} onChange={e => setFormData(p => ({ ...p, unit_id: e.target.value }))} style={selectStyle} onFocus={focus} onBlur={blur}>
+                  <option value="">None</option>
+                  {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label>Department</Label>
+                <select value={formData.department_id || ''} onChange={e => setFormData(p => ({ ...p, department_id: e.target.value }))} style={selectStyle} onFocus={focus} onBlur={blur}>
+                  <option value="">None</option>
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label>Position</Label>
+                <select value={formData.position_id || ''} onChange={e => setFormData(p => ({ ...p, position_id: e.target.value }))} style={selectStyle} onFocus={focus} onBlur={blur}>
+                  <option value="">None</option>
+                  {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label>Roles</Label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {roles.map(r => {
+                    const on = selectedRoles.includes(r.name)
+                    return (
+                      <div key={r.id} onClick={() => toggleRole(r.name)}
+                        style={{ padding: "5px 14px", borderRadius: 20, border: `1.5px solid ${on ? PRIMARY : PRIMARY_BORDER}`, background: on ? PRIMARY_BG : "#fff", color: on ? PRIMARY_TEXT : "#64748b", fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all .15s" }}>
+                        {r.name}
+                      </div>
+                    )
+                  })}
+                </div>
+                {selectedRoles.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>No roles selected</div>}
+              </div>
+            </div>
 
-            {/* Unit Dropdown */}
-            <FormControl fullWidth size="small">
-              <InputLabel>Unit</InputLabel>
-              <Select
-                value={formData.unit_id || ''}
-                onChange={(e) => setFormData({ ...formData, unit_id: e.target.value })}
-                label="Unit"
-              >
-                <MenuItem value="">None</MenuItem>
-                {units.map(unit => (
-                  <MenuItem key={unit.id} value={unit.id}>{unit.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <div style={{ padding: "16px 24px", borderTop: `1px solid ${PRIMARY_BG}`, display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
+              <button onClick={close} style={{ padding: "9px 18px", borderRadius: 8, border: `1.5px solid ${PRIMARY_BORDER}`, background: "#fff", color: "#64748b", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={save} disabled={loading} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: loading ? "#e2e8f0" : GRADIENT, color: loading ? "#94a3b8" : "#fff", fontWeight: 700, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
+                {loading ? <><CircularProgress size={14} sx={{ color: "#94a3b8" }} /> Saving...</> : (mode === 'create' ? 'Create' : 'Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Department Dropdown */}
-            <FormControl fullWidth size="small">
-              <InputLabel>Department</InputLabel>
-              <Select
-                value={formData.department_id || ''}
-                onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
-                label="Department"
-              >
-                <MenuItem value="">None</MenuItem>
-                {departments.map(dept => (
-                  <MenuItem key={dept.id} value={dept.id}>{dept.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Position Dropdown */}
-            <FormControl fullWidth size="small">
-              <InputLabel>Position</InputLabel>
-              <Select
-                value={formData.position_id || ''}
-                onChange={(e) => setFormData({ ...formData, position_id: e.target.value })}
-                label="Position"
-              >
-                <MenuItem value="">None</MenuItem>
-                {positions.map(pos => (
-                  <MenuItem key={pos.id} value={pos.id}>{pos.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Roles */}
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                Roles
-              </Typography>
-              <Select
-                multiple
-                fullWidth
-                size="small"
-                value={selectedRoles}
-                onChange={(e) => setSelectedRoles(e.target.value)}
-                renderValue={(selected) => selected.join(', ')}
-              >
-                {roles.map(role => (
-                  <MenuItem key={role.id} value={role.name}>
-                    <Checkbox checked={selectedRoles.includes(role.name)} size="small" />
-                    <ListItemText primary={role.name} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
-          </Stack>
-        </DialogContent>
-
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={closeDialog}>Cancel</Button>
-          <Button onClick={saveUser} variant="contained" disabled={loading}>
-            {loading ? <CircularProgress size={24} /> : (mode === 'create' ? 'Create' : 'Save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={!!message}
-        autoHideDuration={3000}
-        onClose={() => setMessage('')}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity={message.severity} sx={{ borderRadius: 2 }}>
-          {message.text}
-        </Alert>
-      </Snackbar>
-    </Box>
-  );
+      {toast && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "#f0fdf4" : "#fef2f2", border: `1px solid ${toast.ok ? "#bbf7d0" : "#fecaca"}`, color: toast.ok ? "#16a34a" : "#dc2626", fontWeight: 600, fontSize: 13, boxShadow: "0 4px 20px rgba(0,0,0,.1)", fontFamily: "'DM Sans', sans-serif" }}>
+          {toast.ok ? "✓" : "⚠"} {toast.text}
+        </div>
+      )}
+    </div>
+  )
 }

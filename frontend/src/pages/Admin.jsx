@@ -1,105 +1,211 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/auth-context';
-import api from '../api/axios';
-
+import { useState, useEffect, useContext, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../context/auth-context'
+import api from '../api/axios'
+import { Tabs, Tab } from '@mui/material'
 import {
-  Container, Box, Tabs, Tab, Typography, Paper
-} from '@mui/material';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+  PRIMARY,
+  PRIMARY_BG,
+  PRIMARY_BORDER,
+  SHADOW_SUBTLE
+} from '../theme/colors'
 
-import UserTab from '../Components/admin/UsersTab';
-import RoleTab from '../Components/admin/RolesTab';
-import CategoriesTab from '../Components/admin/CategoriesTab'; // ✅ NEW
+import UsersTab from '../Components/admin/UsersTab'
+import RolesTab from '../Components/admin/RolesTab'
+import CategoriesTab from '../Components/admin/CategoriesTab'
 
-function AdminTabPanel({ children, value, index }) {
+function TabPanel({ children, value, index }) {
   return (
     <div hidden={value !== index}>
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && (
+        <div style={{ paddingTop: 20 }}>
+          {children}
+        </div>
+      )}
     </div>
-  );
+  )
 }
 
 export default function Admin() {
-  const { user } = useContext(AuthContext);
+  const { user } = useContext(AuthContext)
+  const navigate = useNavigate()
 
-  const [tabValue, setTabValue] = useState(0);
+  const [tab, setTab] = useState(0)
 
-  const [roles, setRoles] = useState([]);
-  const [permissions, setPermissions] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [categories, setCategories] = useState([]); // ✅ NEW
+  const [roles, setRoles] = useState([])
+  const [permissions, setPermissions] = useState([])
+  const [users, setUsers] = useState([])
+  const [categories, setCategories] = useState([])
 
-  const isAdmin = user?.roles?.some(
-    r => r.name === 'admin' || r.name === 'superadmin'
-  );
+  const isAdmin = user?.roles?.some(r =>
+    ['admin', 'superadmin'].includes(r.name)
+  )
 
-  const loadData = async () => {
+  // Redirect unauthorized users
+  useEffect(() => {
+    if (user && !isAdmin) {
+      navigate('/403', { replace: true })
+    }
+  }, [user, isAdmin, navigate])
+
+  // Shared refresh function
+  const loadData = useCallback(async () => {
     try {
       const [rRes, pRes, uRes, cRes] = await Promise.all([
         api.get('/admin/roles'),
         api.get('/admin/permissions'),
         api.get('/admin/users'),
-        api.get('/admin/ticket-categories') // ✅ NEW
-      ]);
+        api.get('/admin/ticket-categories')
+      ])
 
-      setRoles(rRes.data);
-      setPermissions(pRes.data);
-      setUsers(uRes.data);
-      setCategories(cRes.data); // ✅ NEW
+      setRoles(rRes.data)
+      setPermissions(pRes.data)
+      setUsers(uRes.data)
+      setCategories(cRes.data)
+
     } catch (err) {
-      console.error(err);
+      console.error(err)
+
+      if (err.response?.status === 403) {
+        navigate('/403', { replace: true })
+      }
+
+      if (err.response?.status === 500) {
+        navigate('/500', { replace: true })
+      }
     }
-  };
+  }, [navigate])
 
+  // Initial data load
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin) return
 
-    const fetchData = async () => {
-      await loadData();
-    };
+    const init = async () => {
+      await loadData()
+    }
 
-    fetchData();
-  }, [isAdmin]);
+    init()
+  }, [isAdmin, loadData])
 
-  if (!isAdmin) return <Typography>No access</Typography>;
+  if (!isAdmin) return null
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4 }}>
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h4">
-          <AdminPanelSettingsIcon /> Admin Panel
-        </Typography>
-      </Paper>
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      {/* Page Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#94a3b8',
+            letterSpacing: '.08em',
+            textTransform: 'uppercase',
+            marginBottom: 4
+          }}
+        >
+          System
+        </div>
 
-      <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
-        <Tab label="Users" />
-        <Tab label="Roles" />
-        <Tab label="Categories" /> {/* ✅ NEW */}
-      </Tabs>
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 800,
+            color: '#0c4a6e'
+          }}
+        >
+          Admin Panel
+        </div>
 
-      <AdminTabPanel value={tabValue} index={0}>
-        <UserTab
-          users={users}
-          roles={roles}
-          permissions={permissions}
-          refresh={loadData}
-        />
-      </AdminTabPanel>
+        <div
+          style={{
+            fontSize: 13,
+            color: '#64748b',
+            marginTop: 2
+          }}
+        >
+          Manage users, roles, and ticket categories
+        </div>
+      </div>
 
-      <AdminTabPanel value={tabValue} index={1}>
-        <RoleTab
-          roles={roles}
-          permissions={permissions}
-          setRoles={setRoles}
-        />
-      </AdminTabPanel>
+      {/* Main Card */}
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 16,
+          border: `1px solid ${PRIMARY_BORDER}`,
+          boxShadow: SHADOW_SUBTLE,
+          overflow: 'hidden'
+        }}
+      >
+        {/* Tabs */}
+        <div
+          style={{
+            borderBottom: `1px solid ${PRIMARY_BG}`,
+            padding: '0 20px'
+          }}
+        >
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            sx={{
+              minHeight: 44,
 
-      <AdminTabPanel value={tabValue} index={2}>
-        <CategoriesTab
-          categories={categories}
-          refresh={loadData}
-        />
-      </AdminTabPanel>
-    </Container>
-  );
+              '& .MuiTabs-indicator': {
+                backgroundColor: PRIMARY,
+                height: 2.5,
+                borderRadius: 99
+              },
+
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: 13,
+                color: '#94a3b8',
+                minHeight: 44,
+                fontFamily: "'DM Sans', sans-serif",
+                px: 2
+              },
+
+              '& .Mui-selected': {
+                color: `${PRIMARY} !important`
+              }
+            }}
+          >
+            <Tab label="👤 Users" />
+            <Tab label="🔐 Roles & Permissions" />
+            <Tab label="🗂️ Categories" />
+          </Tabs>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '20px 24px' }}>
+          <TabPanel value={tab} index={0}>
+            <UsersTab
+              users={users}
+              roles={roles}
+              permissions={permissions}
+              refresh={loadData}
+            />
+          </TabPanel>
+
+          <TabPanel value={tab} index={1}>
+            <RolesTab
+              roles={roles}
+              permissions={permissions}
+              setRoles={setRoles}
+              setPermissions={setPermissions}
+              refresh={loadData}
+            />
+          </TabPanel>
+
+          <TabPanel value={tab} index={2}>
+            <CategoriesTab
+              categories={categories}
+              refresh={loadData}
+            />
+          </TabPanel>
+        </div>
+      </div>
+    </div>
+  )
 }

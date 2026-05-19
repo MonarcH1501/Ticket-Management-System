@@ -1,16 +1,10 @@
-import {
-  ResponsiveContainer, BarChart, Bar,
-  XAxis, YAxis, Tooltip, CartesianGrid
-} from "recharts"
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
+import { PRIMARY, PRIMARY_BG } from "../../theme/colors"
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{
-      background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10,
-      padding: "10px 14px", boxShadow: "0 4px 16px rgba(0,0,0,.08)",
-      fontFamily: "'DM Sans', sans-serif", fontSize: 13
-    }}>
+    <div style={{ background: "#fff", border: "1.5px solid #bae6fd", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontFamily: "'DM Sans', sans-serif", fontSize: 13 }}>
       <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{label}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, color: "#475569" }}>
@@ -35,24 +29,22 @@ export default function DashboardChart({ data }) {
 
   return (
     <div style={{ width: "100%", height: "100%", fontFamily: "'DM Sans', sans-serif" }}>
-      {/* Legend */}
       <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
-        {[{ label: "Created", color: "#6366f1" }, { label: "Completed", color: "#22c55e" }].map(l => (
+        {[{ label: "Created", color: PRIMARY }, { label: "Completed", color: "#22c55e" }].map(l => (
           <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#64748b", fontWeight: 600 }}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: l.color }} />
             {l.label}
           </div>
         ))}
       </div>
-
       <ResponsiveContainer width="100%" height="85%">
         <BarChart data={data} barGap={4} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" vertical={false} />
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8", fontFamily: "'DM Sans', sans-serif" }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: "#94a3b8", fontFamily: "'DM Sans', sans-serif" }} axisLine={false} tickLine={false} allowDecimals={false} />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
-          <Bar dataKey="created" name="Created" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={32} />
-          <Bar dataKey="completed" name="Completed" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={32} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: PRIMARY_BG }} />
+          <Bar dataKey="created"   name="Created"   fill={PRIMARY}    radius={[4,4,0,0]} maxBarSize={32} />
+          <Bar dataKey="completed" name="Completed" fill="#22c55e" radius={[4,4,0,0]} maxBarSize={32} />
         </BarChart>
       </ResponsiveContainer>
     </div>

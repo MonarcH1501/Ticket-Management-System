@@ -13,7 +13,8 @@ use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
-    // Roles
+    // ── Roles ──────────────────────────────────────────────────────────────────
+
     public function roles(Request $request)
     {
         return response()->json(Role::with('permissions')->get());
@@ -24,13 +25,9 @@ class AdminController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|unique:roles,name|max:255',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $role = Role::create($request->only('name'));
-
         return response()->json($role, 201);
     }
 
@@ -39,13 +36,9 @@ class AdminController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => ['string', 'max:255', Rule::unique('roles')->ignore($role->id)],
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $role->update($request->only('name'));
-
         return response()->json($role);
     }
 
@@ -63,20 +56,17 @@ class AdminController extends Controller
     public function syncRolePermissions(Request $request, Role $role)
     {
         $validator = Validator::make($request->all(), [
-            'permissions' => 'required|array',
+            'permissions'   => 'required|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $role->syncPermissions($request->permissions);
-
         return response()->json($role->load('permissions'));
     }
 
-    // Permissions
+    // ── Permissions ────────────────────────────────────────────────────────────
+
     public function permissions(Request $request)
     {
         return response()->json(Permission::all());
@@ -85,32 +75,24 @@ class AdminController extends Controller
     public function storePermission(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|unique:permissions,name|max:255',
+            'name'       => 'required|string|unique:permissions,name|max:255',
             'guard_name' => 'string|max:255',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $permission = Permission::create($request->only(['name', 'guard_name']));
-
         return response()->json($permission, 201);
     }
 
     public function updatePermission(Request $request, Permission $permission)
     {
         $validator = Validator::make($request->all(), [
-            'name' => ['string', 'max:255', Rule::unique('permissions')->ignore($permission->id)],
+            'name'       => ['string', 'max:255', Rule::unique('permissions')->ignore($permission->id)],
             'guard_name' => 'string|max:255',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $permission->update($request->only(['name', 'guard_name']));
-
         return response()->json($permission);
     }
 
@@ -120,19 +102,15 @@ class AdminController extends Controller
         return response()->json(['message' => 'Permission deleted']);
     }
 
-    // Users (admin view)
+    // ── Users ──────────────────────────────────────────────────────────────────
+
     public function adminUsers(Request $request)
     {
         $query = User::with(['roles', 'permissions', 'unit', 'department', 'position'])
             ->select('id', 'name', 'email', 'unit_id', 'department_id', 'position_id');
 
-        if ($request->role) {
-            $query->role($request->role);
-        }
-
-        if ($request->department_id) {
-            $query->where('department_id', $request->department_id);
-        }
+        if ($request->role) $query->role($request->role);
+        if ($request->department_id) $query->where('department_id', $request->department_id);
 
         return response()->json($query->get());
     }
@@ -140,46 +118,36 @@ class AdminController extends Controller
     public function storeUser(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'unit_id' => 'nullable|exists:units,id',
+            'name'          => 'required|string|max:255',
+            'email'         => 'required|email|unique:users,email',
+            'password'      => 'required|string|min:8',
+            'unit_id'       => 'nullable|exists:units,id',
             'department_id' => 'nullable|exists:departments,id',
-            'position_id' => 'nullable|exists:positions,id',
+            'position_id'   => 'nullable|exists:positions,id',
         ]);
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $user = User::create($request->only([
-            'name', 'email', 'password', 'unit_id', 'department_id', 'position_id'
-        ]));
-
+        $user = User::create($request->only(['name', 'email', 'password', 'unit_id', 'department_id', 'position_id']));
         return response()->json($user->load(['roles', 'unit', 'department', 'position']), 201);
     }
 
     public function updateUser(Request $request, User $user)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => ['required|email', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:8',
-            'unit_id' => 'nullable|exists:units,id',
+            'name'          => 'required|string|max:255',
+            // ✅ Fix: array syntax, not pipe-in-string
+            'email'         => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'password'      => 'nullable|string|min:8',
+            'unit_id'       => 'nullable|exists:units,id',
             'department_id' => 'nullable|exists:departments,id',
-            'position_id' => 'nullable|exists:positions,id',
+            'position_id'   => 'nullable|exists:positions,id',
         ]);
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        $user->update($request->only(['name', 'email', 'unit_id', 'department_id', 'position_id']));
 
-        $user->update($request->only([
-            'name', 'email', 'unit_id', 'department_id', 'position_id'
-        ]));
-
-        if ($request->password) {
-            $user->update(['password' => $request->password]);
+        if ($request->filled('password')) {
+            $user->update(['password' => bcrypt($request->password)]);
         }
 
         return response()->json($user->load(['roles', 'unit', 'department', 'position']));
@@ -196,13 +164,9 @@ class AdminController extends Controller
         $validator = Validator::make($request->all(), [
             'role' => 'required|string|exists:roles,name',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $user->assignRole($request->role);
-
         return response()->json($user->load('roles'));
     }
 
@@ -211,123 +175,80 @@ class AdminController extends Controller
         $validator = Validator::make($request->all(), [
             'role' => 'required|string|exists:roles,name',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $user->removeRole($request->role);
-
         return response()->json($user->load('roles'));
     }
 
     public function syncUserPermissions(Request $request, User $user)
     {
         $validator = Validator::make($request->all(), [
-            'permissions' => 'required|array',
+            'permissions'   => 'required|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $user->syncPermissions($request->permissions);
-
         return response()->json($user->load('permissions'));
     }
 
+    // ✅ NEW: sync multiple roles at once (replaces all existing roles)
     public function syncUserRoles(Request $request, User $user)
     {
         $validator = Validator::make($request->all(), [
-            'roles' => 'required|array',
+            'roles'   => 'required|array',
             'roles.*' => 'exists:roles,name',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
         $user->syncRoles($request->roles);
-
         return response()->json($user->load('roles'));
     }
+
+    // ── Ticket Categories ──────────────────────────────────────────────────────
 
     public function ticketCategories(Request $request)
     {
         $query = TicketCategory::with('department');
-
-        if ($request->department_id) {
-            $query->where('department_id', $request->department_id);
-        }
-
-        if (!is_null($request->is_active)) {
-            $query->where('is_active', $request->is_active);
-        }
-
+        if ($request->department_id) $query->where('department_id', $request->department_id);
+        if (!is_null($request->is_active)) $query->where('is_active', $request->is_active);
         return response()->json($query->get());
     }
 
     public function storeTicketCategory(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'code' => 'required|string|max:50|unique:ticket_categories,code',
-            'name' => 'required|string|max:255',
+            'code'          => 'required|string|max:50|unique:ticket_categories,code',
+            'name'          => 'required|string|max:255',
             'department_id' => 'required|exists:departments,id',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
+            'description'   => 'nullable|string',
+            'is_active'     => 'boolean',
         ]);
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $category = TicketCategory::create($request->only([
-            'code',
-            'name',
-            'department_id',
-            'description',
-            'is_active'
-        ]));
-
+        $category = TicketCategory::create($request->only(['code', 'name', 'department_id', 'description', 'is_active']));
         return response()->json($category->load('department'), 201);
     }
-    
+
     public function updateTicketCategory(Request $request, TicketCategory $ticketCategory)
     {
         $validator = Validator::make($request->all(), [
-            'code' => [
-                'string',
-                'max:50',
-                Rule::unique('ticket_categories')->ignore($ticketCategory->id)
-            ],
-            'name' => 'string|max:255',
+            'code'          => ['string', 'max:50', Rule::unique('ticket_categories')->ignore($ticketCategory->id)],
+            'name'          => 'string|max:255',
             'department_id' => 'exists:departments,id',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
+            'description'   => 'nullable|string',
+            'is_active'     => 'boolean',
         ]);
+        if ($validator->fails()) return response()->json($validator->errors(), 422);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $ticketCategory->update($request->only([
-            'code',
-            'name',
-            'department_id',
-            'description',
-            'is_active'
-        ]));
-
+        $ticketCategory->update($request->only(['code', 'name', 'department_id', 'description', 'is_active']));
         return response()->json($ticketCategory->load('department'));
     }
 
     public function destroyTicketCategory(TicketCategory $ticketCategory)
     {
         $ticketCategory->delete();
-
-        return response()->json([
-            'message' => 'Ticket category deleted'
-        ]);
+        return response()->json(['message' => 'Ticket category deleted']);
     }
 }

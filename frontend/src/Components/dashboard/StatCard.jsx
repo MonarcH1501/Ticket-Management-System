@@ -1,62 +1,29 @@
-import { Card, CardContent, Typography, Box } from "@mui/material";
+import { PRIMARY, PRIMARY_BG, PRIMARY_BORDER, SHADOW_SUBTLE } from "../../theme/colors"
 
-export default function StatCard({ title, value, icon, gradient }) {
+// StatCard sekarang konsisten dengan OverviewTab inline cards
+// gradient prop masih diterima untuk backward compat tapi tidak dipakai
+export default function StatCard({ title, value, icon, color, shadow }) {
+  const c = color  || PRIMARY
+  const s = shadow || PRIMARY_BG
 
   return (
-    <Card
-      sx={{
-        borderRadius: 3,
-        background: gradient,
-        color: "white",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-        transition: "0.25s",
-        "&:hover": { transform: "translateY(-6px)" }
-      }}
+    <div style={{
+      background: "#fff", borderRadius: 16,
+      border: `1px solid ${PRIMARY_BORDER}`,
+      boxShadow: SHADOW_SUBTLE, padding: "20px 20px 16px",
+      fontFamily: "'DM Sans', sans-serif",
+      transition: "transform .15s, box-shadow .15s"
+    }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px rgba(14,165,233,.12)` }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = SHADOW_SUBTLE }}
     >
-
-      <CardContent>
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}
-        >
-
-          <Box>
-
-            <Typography variant="body2">
-              {title}
-            </Typography>
-
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 700 }}
-            >
-              {value}
-            </Typography>
-
-          </Box>
-
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(255,255,255,0.2)"
-            }}
-          >
-            {icon}
-          </Box>
-
-        </Box>
-
-      </CardContent>
-
-    </Card>
-  );
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: ".08em", textTransform: "uppercase" }}>{title}</div>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: s, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+          {icon}
+        </div>
+      </div>
+      <div style={{ fontSize: 32, fontWeight: 800, color: c, lineHeight: 1 }}>{value}</div>
+    </div>
+  )
 }

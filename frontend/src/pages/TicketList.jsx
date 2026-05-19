@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import api from "../api/axios"
 import { CircularProgress } from "@mui/material"
 import TicketTable from "../Components/TicketTable"
+import { PRIMARY, PRIMARY_BG, GRADIENT, SHADOW } from "../theme/colors"
 
 export default function TicketList() {
   const [allTickets, setAllTickets]           = useState([])
@@ -12,7 +13,6 @@ export default function TicketList() {
   const [searchTerm, setSearchTerm]           = useState("")
   const navigate = useNavigate()
 
-  // ── Fetch ALL pages ──────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true)
@@ -25,16 +25,12 @@ export default function TicketList() {
           all.push(...(res.data.data ?? res.data))
         }
         setAllTickets(all)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+      } catch (err) { console.error(err) }
+      finally { setLoading(false) }
     }
     fetchAll()
   }, [])
 
-  // ── Filter + Search ──────────────────────────────────────────────────────────
   useEffect(() => {
     let result = [...allTickets]
     if (filter === "COMPLETED")   result = result.filter(t => t.current_status === "completed")
@@ -53,7 +49,7 @@ export default function TicketList() {
   const uncompletedCount = allTickets.filter(t => t.current_status !== "completed").length
   const completedCount   = allTickets.filter(t => t.current_status === "completed").length
 
-  const tabBtn = (active, activeColor = "#6366f1", activeBg = "#eef2ff") => ({
+  const tabBtn = (active, activeColor = PRIMARY, activeBg = PRIMARY_BG) => ({
     display: "flex", alignItems: "center", gap: 8,
     padding: "8px 16px", borderRadius: 20, border: "none",
     background: active ? activeBg : "transparent",
@@ -63,37 +59,37 @@ export default function TicketList() {
   })
 
   return (
-    <div style={{ padding: "28px 24px", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* Page Header */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 4 }}>Ticketing</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Tickets</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#0c4a6e" }}>Tickets</div>
           <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>Manage all support tickets</div>
         </div>
         <button onClick={() => navigate("/tickets/create")} style={{
           padding: "10px 20px", borderRadius: 10, border: "none",
-          background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+          background: GRADIENT, color: "#fff",
           fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
-          boxShadow: "0 4px 14px rgba(99,102,241,.3)"
+          boxShadow: SHADOW
         }}>
           + Create Ticket
         </button>
       </div>
 
       {/* Main Card */}
-      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 1px 8px rgba(0,0,0,.06)", overflow: "hidden" }}>
+      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #bae6fd", boxShadow: "0 1px 8px rgba(0,0,0,.06)", overflow: "hidden" }}>
 
         {/* Toolbar */}
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
 
           {/* Filter Tabs */}
-          <div style={{ display: "flex", background: "#f8fafc", borderRadius: 22, padding: 3, gap: 2 }}>
+          <div style={{ display: "flex", background: "#f0f9ff", borderRadius: 22, padding: 3, gap: 2 }}>
             <button style={tabBtn(filter === "UNCOMPLETED")} onClick={() => setFilter("UNCOMPLETED")}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: filter === "UNCOMPLETED" ? "#6366f1" : "#cbd5e1" }} />
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: filter === "UNCOMPLETED" ? PRIMARY : "#cbd5e1" }} />
               Uncompleted
-              <span style={{ padding: "1px 7px", borderRadius: 20, background: filter === "UNCOMPLETED" ? "#6366f1" : "#e2e8f0", color: filter === "UNCOMPLETED" ? "#fff" : "#94a3b8", fontSize: 11, fontWeight: 700 }}>
+              <span style={{ padding: "1px 7px", borderRadius: 20, background: filter === "UNCOMPLETED" ? PRIMARY : "#e2e8f0", color: filter === "UNCOMPLETED" ? "#fff" : "#94a3b8", fontSize: 11, fontWeight: 700 }}>
                 {uncompletedCount}
               </span>
             </button>
@@ -110,12 +106,11 @@ export default function TicketList() {
           <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>🔍</span>
             <input
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search by ticket code, title, or unit..."
-              style={{ width: "100%", padding: "8px 36px 8px 34px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box", background: "#fafafa" }}
-              onFocus={e => (e.target.style.borderColor = "#6366f1")}
-              onBlur={e => (e.target.style.borderColor = "#e2e8f0")}
+              style={{ width: "100%", padding: "8px 36px 8px 34px", borderRadius: 8, border: "1.5px solid #bae6fd", fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box", background: "#f0f9ff" }}
+              onFocus={e => (e.target.style.borderColor = PRIMARY)}
+              onBlur={e => (e.target.style.borderColor = "#bae6fd")}
             />
             {searchTerm && (
               <span onClick={() => setSearchTerm("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#94a3b8", fontSize: 18, lineHeight: 1 }}>×</span>
@@ -124,17 +119,15 @@ export default function TicketList() {
 
           {/* Counter */}
           <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, whiteSpace: "nowrap" }}>
-            Showing{" "}
-            <span style={{ color: "#6366f1" }}>{filteredTickets.length}</span>
-            {" "}of{" "}
-            <span style={{ color: "#6366f1" }}>{filter === "COMPLETED" ? completedCount : uncompletedCount}</span>
+            Showing <span style={{ color: PRIMARY }}>{filteredTickets.length}</span>
+            {" "}of <span style={{ color: PRIMARY }}>{filter === "COMPLETED" ? completedCount : uncompletedCount}</span>
           </div>
         </div>
 
         {/* Content */}
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
-            <CircularProgress sx={{ color: "#6366f1" }} />
+            <CircularProgress sx={{ color: PRIMARY }} />
           </div>
         ) : filteredTickets.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "#94a3b8" }}>

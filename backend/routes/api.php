@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UnitApprovalController;
-use App\Http\Controllers\Api\DepartmentApprovalController;
+use App\Http\Controllers\Api\DepartmentApprovalController;  
 use App\Http\Controllers\Api\AssignPicController;       
 use App\Http\Controllers\Api\SubmitTicketController;
 use App\Http\Controllers\Api\DepartmentReviewController;
@@ -73,7 +73,7 @@ use Spatie\Permission\Middleware\RoleMiddleware;
     Route::delete('/roles/{role}', [AdminController::class, 'destroyRole']);
     Route::get('/roles/{role}/permissions', [AdminController::class, 'rolePermissions']);
     Route::post('/roles/{role}/permissions', [AdminController::class, 'syncRolePermissions']);
-
+    Route::post('/users/{user}/sync-roles', [AdminController::class, 'syncUserRoles']);
     // Permissions
     Route::get('/permissions', [AdminController::class, 'permissions']);
     Route::post('/permissions', [AdminController::class, 'storePermission']);

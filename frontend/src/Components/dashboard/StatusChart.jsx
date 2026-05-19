@@ -1,161 +1,50 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  useTheme
-} from "@mui/material";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts"
+import { PRIMARY, PRIMARY_DARK, PRIMARY_LIGHT, PRIMARY_BORDER } from "../../theme/colors"
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend
-} from "recharts";
+const COLORS = [PRIMARY, "#22c55e", PRIMARY_DARK, "#f59e0b", "#ef4444", PRIMARY_LIGHT, "#8b5cf6"]
 
-// CustomTooltip di luar komponen
 const CustomTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    return (
-      <Box
-        sx={{
-          bgcolor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          p: 1,
-          boxShadow: 1
-        }}
-      >
-        <Typography variant="body2" fontWeight="bold">
-          {payload[0].name}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Tickets: {payload[0].value}
-        </Typography>
-      </Box>
-    );
-  }
-  return null;
-};
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: "#fff", border: "1.5px solid #bae6fd", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontFamily: "'DM Sans', sans-serif", fontSize: 13 }}>
+      <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{payload[0].name}</div>
+      <div style={{ color: "#64748b" }}>Tickets: <span style={{ fontWeight: 700, color: payload[0].fill }}>{payload[0].value}</span></div>
+    </div>
+  )
+}
 
 export default function StatusChart({ data }) {
-  const theme = useTheme();
+  const card = { background: "#fff", borderRadius: 14, border: `1px solid ${PRIMARY_BORDER}`, overflow: "hidden", fontFamily: "'DM Sans', sans-serif" }
 
-  console.log("StatusChart data:", data); // Debug log
-
-  if (!data || data.length === 0) {
-    return (
-      <Card sx={{ height: "100%" }}>
-        <CardContent>
-          <Typography sx={{ mb: 2, fontWeight: 600 }}>
-            Tickets by Status
-          </Typography>
-          <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-            No data available
-          </Typography>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const COLORS = [
-    theme.palette.primary.main,
-    theme.palette.warning.main,
-    theme.palette.success.main,
-    theme.palette.error.main,
-    theme.palette.info.main
-  ];
-
-  // Format data dengan benar
-  const formattedData = data.map((item, index) => {
-    let name = "";
-    if (item.current_status) {
-      name = item.current_status.replace(/_/g, " ");
-    } else if (item.status) {
-      name = item.status.replace(/_/g, " ");
-    } else if (item.name) {
-      name = item.name;
-    } else {
-      name = "Unknown";
-    }
-    
-    return {
-      id: index,
-      name: name,
+  const formatted = (data || [])
+    .map((item, i) => ({
+      id: i,
+      name: (item.current_status || item.status || item.name || "Unknown").replace(/_/g, " "),
       total: item.total || item.count || 0
-    };
-  });
-
-  // Filter out items with total 0
-  const filteredData = formattedData.filter(item => item.total > 0);
-
-  if (filteredData.length === 0) {
-    return (
-      <Card sx={{ height: "100%" }}>
-        <CardContent>
-          <Typography sx={{ mb: 2, fontWeight: 600 }}>
-            Tickets by Status
-          </Typography>
-          <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-            No data available
-          </Typography>
-        </CardContent>
-      </Card>
-    );
-  }
+    }))
+    .filter(d => d.total > 0)
 
   return (
-    <Card sx={{ height: "auto" }}>
-      <CardContent>
-        <Typography sx={{ mb: 2, fontWeight: 600 }}>
-          Tickets by Status
-        </Typography>
-
-        <Box sx={{ height: 280, width: "auto" }}>
-          <ResponsiveContainer width="100%" height="100%">
+    <div style={card}>
+      <div style={{ padding: "14px 16px", borderBottom: `1px solid ${PRIMARY_BORDER}`, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: PRIMARY, boxShadow: `0 0 0 3px #e0f2fe` }} />
+        <span style={{ fontWeight: 700, fontSize: 14, color: "#0c4a6e" }}>Tickets by Status</span>
+      </div>
+      <div style={{ padding: 16 }}>
+        {!formatted.length ? (
+          <div style={{ textAlign: "center", padding: "32px 0", color: "#94a3b8", fontSize: 13 }}>No data available</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie
-                data={filteredData}
-                dataKey="total"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={2}
-                stroke="none"
-                strokeWidth={0}
-                isAnimationActive={false}
-              >
-                {filteredData.map((entry, i) => (
-                  <Cell 
-                    key={entry.id} 
-                    fill={COLORS[i % COLORS.length]} 
-                    stroke="none"
-                    strokeWidth={0}
-                  />
-                ))}
+              <Pie data={formatted} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} stroke="none" strokeWidth={0} isAnimationActive={false}>
+                {formatted.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" strokeWidth={0} />)}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                verticalAlign="bottom"
-                align="center"
-                height={36}
-                wrapperStyle={{
-                  fontSize: '12px',
-                  paddingTop: '10px'
-                }}
-                iconType="circle"
-                iconSize={8}
-                formatter={(value) => value}
-              />
+              <Legend verticalAlign="bottom" align="center" height={36} wrapperStyle={{ fontSize: 12, paddingTop: 10 }} iconType="circle" iconSize={8} />
             </PieChart>
           </ResponsiveContainer>
-        </Box>
-      </CardContent>
-    </Card>
-  );
+        )}
+      </div>
+    </div>
+  )
 }

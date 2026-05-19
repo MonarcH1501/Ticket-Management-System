@@ -1,51 +1,32 @@
 import { useEffect, useState } from "react"
 import api from "../../api/axios"
-
-import { Box, Typography, CircularProgress } from "@mui/material"
+import { PRIMARY } from "../../theme/colors"
 import MyTasks from "./MyTasks"
 
-export default function MyTasksTab(){
+export default function MyTasksTab() {
+  const [data, setData]       = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const [data,setData] = useState(null)
-  const [loading,setLoading] = useState(true)
-
-  useEffect(()=>{
+  useEffect(() => {
     api.get("/tickets/my-tasks")
-      .then(res=>{
-        setData(res.data)
-      })
-      .finally(()=>{
-        setLoading(false)
-      })
-  },[])
+      .then(res => setData(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
 
-  return(
-
-    <Box>
-
-      <Typography
-        variant="h5"
-        sx={{ mb:3, fontWeight:600 }}
-      >
-        My Tasks
-      </Typography>
+  return (
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 4 }}>Dashboard</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#0c4a6e", marginBottom: 20 }}>My Tasks</div>
 
       {loading ? (
-        <Box
-          sx={{
-            display:"flex",
-            justifyContent:"center",
-            alignItems:"center",
-            height:"60vh"
-          }}
-        >
-          <CircularProgress color="primary"/>
-        </Box>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
+          <div style={{ width: 36, height: 36, border: `3px solid #e0f2fe`, borderTopColor: PRIMARY, borderRadius: "50%", animation: "spin .7s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
       ) : (
-        <MyTasks data={data}/>
+        <MyTasks data={data} />
       )}
-
-    </Box>
-
+    </div>
   )
 }
