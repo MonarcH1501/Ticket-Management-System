@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\LookupController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AdminController;
 use Spatie\Permission\Middleware\RoleMiddleware;
+use App\Http\Controllers\Api\ForwardTicketController;
 
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/login/google', [AuthController::class, 'redirectToGoogle']);
@@ -36,11 +37,14 @@ use Spatie\Permission\Middleware\RoleMiddleware;
     Route::get('/tickets/my-tasks', [TicketAnalyticsController::class,'myTasks']);
     Route::get('/tickets', [TicketController::class, 'index']);
     Route::get('/tickets/{ticket}', [TicketController::class, 'show']);
+    Route::post('/tickets/{ticket}/forward', [ForwardTicketController::class, 'handle']);
     Route::get('/user', fn (Request $request) => $request->user()->load('roles.permissions'));
     Route::get('/tickets/{ticket}/workflow', [TicketController::class, 'workflow']);
     Route::get('/tickets/{ticket}/attachments', [TicketAttachmentController::class, 'index']);
     Route::get('/tickets/{ticket}/attachments/{attachment}/download',[TicketAttachmentController::class, 'download']);
     Route::get('/departments', [LookupController::class,'departments']);
+    Route::get('/units', [LookupController::class, 'units']);
+    Route::get('/positions', [LookupController::class, 'positions']);
     Route::get('/ticket-categories', [LookupController::class,'ticketCategories']);
 
     //Route Delete

@@ -23,7 +23,8 @@ class DepartmentApprovalService
                 );
             }
 
-            if ($ticket->current_approver_id !== $approver->id) {
+            // Cast ke int agar strict comparison tidak false-negative
+            if ((int) $ticket->current_approver_id !== (int) $approver->id) {
                 throw new LogicException(
                     'Anda bukan approver ticket ini.'
                 );
@@ -31,13 +32,12 @@ class DepartmentApprovalService
 
             $workflow = app(TicketWorkflow::class);
 
-            // ================= STATUS MAP =================
+            // ================= CREATE APPROVAL =================
             $statusMap = [
                 'approve' => 'department_approved',
                 'reject'  => 'department_rejected',
             ];
 
-            // ================= CREATE APPROVAL =================
             TicketApproval::create([
                 'ticket_id'   => $ticket->id,
                 'approved_by' => $approver->id,
@@ -47,25 +47,21 @@ class DepartmentApprovalService
                 'approved_at' => now(),
             ]);
 
+            // ================= REJECT =================
             if ($data['action'] === 'reject') {
-
                 $workflow->transition($ticket, TicketStatus::REJECTED);
 
-                $ticket->update([
-                    'current_approver_id' => null
-                ]);
+                $ticket->update(['current_approver_id' => null]);
 
-                return $ticket;
+                return $ticket->fresh();
             }
 
             // ================= APPROVE → ASSIGN PIC =================
             $workflow->transition($ticket, TicketStatus::WAITING_PIC_ASSIGNED);
 
-            $ticket->update([
-                'current_approver_id' => $approver->id
-            ]);
+            $ticket->update(['current_approver_id' => $approver->id]);
 
-            return $ticket;
+            return $ticket->fresh();
         });
     }
 }

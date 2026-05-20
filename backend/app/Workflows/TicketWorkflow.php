@@ -11,30 +11,32 @@ class TicketWorkflow
     public function transition(Ticket $ticket, TicketStatus $to): void
     {
         if (! $this->canTransition($ticket->current_status, $to)) {
-            throw new LogicException("Transisi tidak valid.");
+            throw new LogicException(
+                "Transisi tidak valid: [{$ticket->current_status->value}] → [{$to->value}]"
+            );
         }
 
         $ticket->update([
-            'current_status' => $to
+            'current_status' => $to,
         ]);
     }
 
-    protected function canTransition(
-        TicketStatus $from,
-        TicketStatus $to
-    ): bool {
+    protected function canTransition(TicketStatus $from, TicketStatus $to): bool
+    {
         return match ($from) {
 
             TicketStatus::WAITING_UNIT_APPROVAL =>
                 in_array($to, [
                     TicketStatus::WAITING_DEPARTMENT_APPROVAL,
-                    TicketStatus::REJECTED
+                    TicketStatus::REJECTED,
                 ]),
 
+            // Forward: reset ke WAITING_DEPARTMENT_APPROVAL di dept lain
             TicketStatus::WAITING_DEPARTMENT_APPROVAL =>
                 in_array($to, [
                     TicketStatus::WAITING_PIC_ASSIGNED,
-                    TicketStatus::REJECTED
+                    TicketStatus::WAITING_DEPARTMENT_APPROVAL,
+                    TicketStatus::REJECTED,
                 ]),
 
             TicketStatus::WAITING_PIC_ASSIGNED =>
@@ -46,12 +48,14 @@ class TicketWorkflow
                 in_array($to, [
                     TicketStatus::WAITING_DEPARTMENT_REVIEW,
                 ]),
+
             TicketStatus::WAITING_DEPARTMENT_REVIEW =>
                 in_array($to, [
                     TicketStatus::COMPLETED,
+                    TicketStatus::IN_PROGRESS, // reject → back to PIC
                 ]),
 
-            default => false
+            default => false,
         };
     }
 }

@@ -15,7 +15,7 @@ export default function Template() {
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
 
-      <Sidebar collapsed={collapsed} drawerWidth={drawerWidth} />
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} drawerWidth={drawerWidth} />
 
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
 

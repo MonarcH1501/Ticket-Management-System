@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\TicketApproval;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use App\Enums\TicketStatus;
+use App\Workflows\TicketWorkflow;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 
 class UnitApprovalService
@@ -23,21 +23,21 @@ class UnitApprovalService
                 );
             }
 
-            if ($ticket->current_approver_id !== $approver->id) {
+            // Cast ke int agar strict comparison tidak false-negative
+            if ((int) $ticket->current_approver_id !== (int) $approver->id) {
                 throw new LogicException(
                     'Anda bukan approver ticket ini.'
                 );
             }
 
-            $workflow = app(\App\Workflows\TicketWorkflow::class);
+            $workflow = app(TicketWorkflow::class);
 
-            // ================= STATUS MAP =================
+            // ================= CREATE APPROVAL =================
             $statusMap = [
                 'approve' => 'unit_approved',
                 'reject'  => 'unit_rejected',
             ];
 
-            // ================= CREATE APPROVAL =================
             TicketApproval::create([
                 'ticket_id'   => $ticket->id,
                 'approved_by' => $approver->id,
@@ -51,29 +51,21 @@ class UnitApprovalService
             if ($data['action'] === 'reject') {
                 $workflow->transition($ticket, TicketStatus::REJECTED);
 
-                $ticket->update([
-                    'current_approver_id' => null
-                ]);
+                $ticket->update(['current_approver_id' => null]);
 
-                return $ticket;
+                return $ticket->fresh();
             }
 
             // ================= APPROVE → NEXT =================
             $nextApprover = $this->getDepartmentHead($ticket);
 
-            $workflow->transition(
-                $ticket,
-                TicketStatus::WAITING_DEPARTMENT_APPROVAL
-            );
+            $workflow->transition($ticket, TicketStatus::WAITING_DEPARTMENT_APPROVAL);
 
-            $ticket->update([
-                'current_approver_id' => $nextApprover->id
-            ]);
+            $ticket->update(['current_approver_id' => $nextApprover->id]);
 
-            return $ticket;
+            return $ticket->fresh();
         });
     }
-
 
     protected function getDepartmentHead(Ticket $ticket): User
     {
@@ -82,9 +74,7 @@ class UnitApprovalService
             ->first();
 
         if (! $user) {
-            throw new LogicException(
-                'Kepala Department tidak ditemukan.'
-            );
+            throw new LogicException('Kepala Department tidak ditemukan.');
         }
 
         return $user;

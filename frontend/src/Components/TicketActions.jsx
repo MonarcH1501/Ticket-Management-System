@@ -39,19 +39,19 @@ const BtnPrimary = ({ children, disabled, onClick, color }) => (
   >{children}</button>
 )
 
-const BtnOutline = ({ children, disabled, onClick }) => (
+const BtnOutline = ({ children, disabled, onClick, color = "#ef4444", borderColor = "#fca5a5" }) => (
   <button disabled={disabled} onClick={onClick}
-    style={{ ...btnBase, background: "#fff", color: disabled ? "#94a3b8" : "#ef4444", border: `1.5px solid ${disabled ? "#e2e8f0" : "#fca5a5"}` }}
+    style={{ ...btnBase, background: "#fff", color: disabled ? "#94a3b8" : color, border: `1.5px solid ${disabled ? "#e2e8f0" : borderColor}` }}
     onMouseDown={e => !disabled && (e.currentTarget.style.transform = "scale(.98)")}
     onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}
   >{children}</button>
 )
 
-const NotesField = ({ value, onChange }) => (
+const NotesField = ({ value, onChange, placeholder = "Add a note..." }) => (
   <div>
     <Label>Notes (optional)</Label>
     <textarea rows={3} value={value} onChange={e => onChange(e.target.value)}
-      placeholder="Add a note..."
+      placeholder={placeholder}
       style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }}
       onFocus={e => (e.target.style.borderColor = PRIMARY)}
       onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}
@@ -59,31 +59,36 @@ const NotesField = ({ value, onChange }) => (
   </div>
 )
 
-function ApprovalBlock({ label, loading, notes, setNotes, onApprove, onReject }) {
+function ApprovalBlock({ label, loading, notes, setNotes, onApprove, onReject, extraActions }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={sectionStyle}>{label}</div>
       <NotesField value={notes} onChange={setNotes} />
       <BtnPrimary disabled={loading} onClick={onApprove} color="#22c55e">✓ Approve</BtnPrimary>
       <BtnOutline disabled={loading} onClick={onReject}>✕ Reject</BtnOutline>
+      {extraActions}
     </div>
   )
 }
 
 export default function TicketActions({ ticket, refresh }) {
-  const [user, setUser]               = useState(null)
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState(null)
-  const [file, setFile]               = useState(null)
-  const [fileError, setFileError]     = useState("")
-  const [pics, setPics]               = useState([])
-  const [selectedPic, setSelectedPic] = useState("")
-  const [priority, setPriority]       = useState("medium")
-  const [dueDate, setDueDate]         = useState("")
-  const [notesAssign, setNotesAssign] = useState("")
-  const [notesUnit, setNotesUnit]     = useState("")
-  const [notesDept, setNotesDept]     = useState("")
-  const [notesReview, setNotesReview] = useState("")
+  const [user, setUser]                   = useState(null)
+  const [loading, setLoading]             = useState(false)
+  const [error, setError]                 = useState(null)
+  const [file, setFile]                   = useState(null)
+  const [fileError, setFileError]         = useState("")
+  const [pics, setPics]                   = useState([])
+  const [departments, setDepartments]     = useState([])
+  const [selectedPic, setSelectedPic]     = useState("")
+  const [priority, setPriority]           = useState("medium")
+  const [dueDate, setDueDate]             = useState("")
+  const [notesAssign, setNotesAssign]     = useState("")
+  const [notesUnit, setNotesUnit]         = useState("")
+  const [notesDept, setNotesDept]         = useState("")
+  const [notesReview, setNotesReview]     = useState("")
+  const [showForward, setShowForward]     = useState(false)
+  const [forwardDeptId, setForwardDeptId] = useState("")
+  const [forwardNotes, setForwardNotes]   = useState("")
 
   const MAX_SIZE_MB    = 10
   const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
@@ -97,6 +102,19 @@ export default function TicketActions({ ticket, refresh }) {
     if (!deptId) return
     api.get(`/users?role=pic&department_id=${deptId}`)
       .then(r => setPics(r.data.data ?? r.data))
+      .catch(console.error)
+  }, [ticket])
+
+  // Load departments untuk forward (hanya saat isDept)
+  useEffect(() => {
+    const status = (ticket?.current_status || "").toLowerCase()
+    if (status !== "waiting_department_approval") return
+    api.get("/departments")
+      .then(r => {
+        const all = r.data.data ?? r.data
+        // Exclude department ticket saat ini
+        setDepartments(all.filter(d => d.id !== ticket?.department?.id))
+      })
       .catch(console.error)
   }, [ticket])
 
@@ -120,7 +138,6 @@ export default function TicketActions({ ticket, refresh }) {
   const handleSubmitWithFile = async () => {
     setLoading(true); setError(null)
     try {
-      // 1. Upload attachment dengan stage in_progress (jika ada file)
       if (file) {
         const fd = new FormData()
         fd.append("file", file)
@@ -129,10 +146,7 @@ export default function TicketActions({ ticket, refresh }) {
           headers: { "Content-Type": "multipart/form-data" }
         })
       }
-
-      // 2. Submit work
       await api.post(`/tickets/${ticket.id}/submit`)
-
       setFile(null); refresh()
     } catch (e) {
       setError(e.response?.data?.message || "Submit gagal")
@@ -141,17 +155,29 @@ export default function TicketActions({ ticket, refresh }) {
     }
   }
 
-  const status       = (ticket.current_status || "").toLowerCase()
-  const isApprover   = Number(user?.id) === Number(ticket.current_approver_id)
-  const isPIC        = Number(user?.id) === Number(ticket?.pic_id || ticket?.pic?.id)
-  const isUnit       = status === "waiting_unit_approval"
-  const isDept       = status === "waiting_department_approval"
-  const isAssignPic  = status === "waiting_pic_assigned"
+  const handleForward = () => {
+    if (!forwardDeptId) return setError("Department tujuan wajib dipilih")
+    handleAction(
+      `/tickets/${ticket.id}/forward`,
+      { department_id: forwardDeptId, notes: forwardNotes },
+      () => { setForwardDeptId(""); setForwardNotes(""); setShowForward(false) }
+    )
+  }
+
+  const status      = (ticket.current_status || "").toLowerCase()
+  const isApprover  = Number(user?.id) === Number(ticket.current_approver_id)
+  const isPIC       = Number(user?.id) === Number(ticket?.pic_id || ticket?.pic?.id)
+  const isUnit      = status === "waiting_unit_approval"
+  const isDept      = status === "waiting_department_approval"
+  const isAssignPic = status === "waiting_pic_assigned"
   const isInProgress = status === "in_progress"
   const isDeptReview = status === "waiting_department_review"
-  const canShow      = (isApprover && (isUnit || isDept || isAssignPic || isDeptReview)) || (isPIC && isInProgress)
+  const canShow     = (isApprover && (isUnit || isDept || isAssignPic || isDeptReview)) || (isPIC && isInProgress)
 
   if (!canShow) return null
+
+  // Forward hanya muncul saat isDept && isApprover
+  const canForward = isApprover && isDept
 
   return (
     <div style={{
@@ -188,18 +214,82 @@ export default function TicketActions({ ticket, refresh }) {
           />
         )}
 
-        {/* DEPT APPROVAL */}
+        {/* DEPT APPROVAL + FORWARD */}
         {isApprover && isDept && (
-          <ApprovalBlock label="Waiting for your department approval"
-            loading={loading} notes={notesDept} setNotes={setNotesDept}
-            onApprove={() => handleAction(`/tickets/${ticket.id}/department-approval`,
-              { action: "approve", notes: notesDept }, () => setNotesDept(""))}
-            onReject={() => {
-              if (!notesDept) return setError("Notes wajib diisi saat reject")
-              handleAction(`/tickets/${ticket.id}/department-approval`,
-                { action: "reject", notes: notesDept }, () => setNotesDept(""))
-            }}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <ApprovalBlock label="Waiting for your department approval"
+              loading={loading} notes={notesDept} setNotes={setNotesDept}
+              onApprove={() => handleAction(`/tickets/${ticket.id}/department-approval`,
+                { action: "approve", notes: notesDept }, () => setNotesDept(""))}
+              onReject={() => {
+                if (!notesDept) return setError("Notes wajib diisi saat reject")
+                handleAction(`/tickets/${ticket.id}/department-approval`,
+                  { action: "reject", notes: notesDept }, () => setNotesDept(""))
+              }}
+            />
+
+            {/* Divider */}
+            {canForward && (
+              <div style={{ borderTop: `1px dashed ${PRIMARY_BORDER}`, paddingTop: 10 }}>
+                {!showForward ? (
+                  <BtnOutline
+                    disabled={loading}
+                    onClick={() => setShowForward(true)}
+                    color="#7c3aed"
+                    borderColor="#ddd6fe"
+                  >
+                    🔀 Forward ke Department Lain
+                  </BtnOutline>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ ...sectionStyle, color: "#6d28d9", background: "#f5f3ff", borderColor: "#ddd6fe" }}>
+                      Forward ticket ke department lain
+                    </div>
+
+                    <div>
+                      <Label>Department Tujuan</Label>
+                      <select
+                        value={forwardDeptId}
+                        onChange={e => setForwardDeptId(e.target.value)}
+                        style={selectStyle}
+                        onFocus={e => (e.target.style.borderColor = "#7c3aed")}
+                        onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}
+                      >
+                        <option value="" disabled>Pilih department...</option>
+                        {departments.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <NotesField
+                      value={forwardNotes}
+                      onChange={setForwardNotes}
+                      placeholder="Alasan forward..."
+                    />
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <BtnOutline
+                        disabled={loading}
+                        onClick={() => { setShowForward(false); setForwardDeptId(""); setForwardNotes("") }}
+                        color="#64748b"
+                        borderColor="#e2e8f0"
+                      >
+                        Batal
+                      </BtnOutline>
+                      <BtnPrimary
+                        disabled={loading || !forwardDeptId}
+                        onClick={handleForward}
+                        color="#7c3aed"
+                      >
+                        🔀 Forward
+                      </BtnPrimary>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ASSIGN PIC */}
@@ -265,15 +355,11 @@ export default function TicketActions({ ticket, refresh }) {
                 <span style={{ fontSize: 13, color: file ? "#16a34a" : "#0369a1", fontWeight: file ? 600 : 400 }}>
                   {file ? file.name : "Click to attach a file (optional)"}
                 </span>
-                {!file && (
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Maks. {MAX_SIZE_MB}MB</div>
-                )}
+                {!file && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Maks. {MAX_SIZE_MB}MB</div>}
               </div>
               {file && (
-                <span
-                  onClick={e => { e.preventDefault(); setFile(null); setFileError("") }}
-                  style={{ fontSize: 18, color: "#f87171", lineHeight: 1, cursor: "pointer", flexShrink: 0 }}
-                >×</span>
+                <span onClick={e => { e.preventDefault(); setFile(null); setFileError("") }}
+                  style={{ fontSize: 18, color: "#f87171", lineHeight: 1, cursor: "pointer", flexShrink: 0 }}>×</span>
               )}
               <input type="file" hidden onChange={handleFileChange} />
             </label>

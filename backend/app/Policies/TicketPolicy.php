@@ -24,31 +24,15 @@ class TicketPolicy
 
     public function view(User $user, Ticket $ticket): bool
     {
-        if ($ticket->created_by === $user->id) {
-            return true;
-        }
+        if ($ticket->created_by === $user->id) return true;
+        if ($ticket->pic_id === $user->id) return true;
+        if ((int) $ticket->current_approver_id === (int) $user->id) return true;
 
-        if ($ticket->pic_id === $user->id) {
+        if ($user->hasRole('kepala_department') && $user->department_id === $ticket->department_id)
             return true;
-        }
 
-        if ($ticket->current_approver_id === $user->id) {
+        if ($user->hasRole('kepala_unit') && $user->unit_id === $ticket->creator?->unit_id)
             return true;
-        }
-
-        if (
-            $user->hasRole('kepala_department')
-            && $user->department_id === $ticket->department_id
-        ) {
-            return true;
-        }
-
-        if (
-            $user->hasRole('kepala_unit')
-            && $user->unit_id === $ticket->creator?->unit_id
-        ) {
-            return true;
-        }
 
         return false;
     }
@@ -62,14 +46,14 @@ class TicketPolicy
     {
         return $user->can('approve_ticket')
             && $ticket->current_status === TicketStatus::WAITING_UNIT_APPROVAL
-            && $ticket->current_approver_id === $user->id;
+            && (int) $ticket->current_approver_id === (int) $user->id;
     }
 
     public function approveDepartment(User $user, Ticket $ticket): bool
     {
         return $user->can('approve_ticket')
             && $ticket->current_status === TicketStatus::WAITING_DEPARTMENT_APPROVAL
-            && $ticket->current_approver_id === $user->id;
+            && (int) $ticket->current_approver_id === (int) $user->id;
     }
 
     public function assignPic(User $user, Ticket $ticket): bool
@@ -78,20 +62,27 @@ class TicketPolicy
             && $user->hasRole('kepala_department')
             && $ticket->current_status === TicketStatus::WAITING_PIC_ASSIGNED
             && $ticket->pic_id === null
-            && $ticket->current_approver_id === $user->id;
+            && (int) $ticket->current_approver_id === (int) $user->id;
     }
 
     public function submit(User $user, Ticket $ticket): bool
     {
         return $user->can('submit_ticket')
             && $ticket->current_status === TicketStatus::IN_PROGRESS
-            && $ticket->pic_id === $user->id;
+            && (int) $ticket->pic_id === (int) $user->id;
     }
 
     public function reviewDepartment(User $user, Ticket $ticket): bool
     {
         return $user->can('approve_ticket')
             && $ticket->current_status === TicketStatus::WAITING_DEPARTMENT_REVIEW
-            && $ticket->department?->head_id === $user->id;
+            && (int) $ticket->department?->head_id === (int) $user->id;
+    }
+
+    public function forward(User $user, Ticket $ticket): bool
+    {
+        return $user->hasRole('kepala_department')
+            && $ticket->current_status === TicketStatus::WAITING_DEPARTMENT_APPROVAL
+            && (int) $ticket->current_approver_id === (int) $user->id;
     }
 }

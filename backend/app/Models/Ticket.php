@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Department;
 use App\Models\Unit;
 use App\Models\TicketCategory;
+use App\Models\TicketForwardHistory;
 
 class Ticket extends Model
 {
@@ -63,7 +64,7 @@ class Ticket extends Model
     {
         return $this->hasMany(TicketApproval::class);
     }
-    
+
     public function pic()
     {
         return $this->belongsTo(User::class, 'pic_id');
@@ -74,4 +75,8 @@ class Ticket extends Model
         return $this->hasMany(TicketAttachment::class);
     }
 
+    public function forwardHistories()
+    {
+        return $this->hasMany(TicketForwardHistory::class)->orderBy('forwarded_at');
+    }
 }

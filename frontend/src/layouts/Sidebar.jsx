@@ -4,7 +4,7 @@ import { AuthContext } from "../context/auth-context"
 
 import {
   Drawer, List, ListItemButton, ListItemIcon,
-  ListItemText, Toolbar, Typography, IconButton
+  ListItemText, Toolbar, Typography, IconButton, Tooltip
 } from "@mui/material"
 
 import DashboardIcon          from "@mui/icons-material/Dashboard"
@@ -65,57 +65,67 @@ export default function Sidebar({ collapsed, setCollapsed, drawerWidth }) {
         {menus.map(menu => (
           <NavLink key={menu.path} to={menu.path} style={{ textDecoration: "none", color: "inherit" }}>
             {({ isActive }) => (
-              <ListItemButton
-                sx={{
-                  mb: 0.5,
-                  borderRadius: 3,
-                  px: 2,
-                  py: 1.2,
-                  color: isActive ? "#fff" : PRIMARY_BORDER,
-                  ...(isActive && {
-                    background: PRIMARY,
-                    boxShadow: `0 4px 14px rgba(30,64,175,0.4)`
-                  }),
-                  "&:hover": {
-                    background: "rgba(255,255,255,0.1)",
-                    color: "#fff",
-                    transform: "translateX(3px)"
-                  }
-                }}
+              <Tooltip
+                title={collapsed ? menu.label : ""}
+                placement="right"
+                arrow
               >
-                <ListItemIcon sx={{ color: "inherit", minWidth: 0, mr: collapsed ? 0 : 2 }}>
-                  {menu.icon}
-                </ListItemIcon>
-                {!collapsed && (
-                  <ListItemText
-                    primary={menu.label}
-                    primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-                  />
-                )}
-              </ListItemButton>
+                <ListItemButton
+                  sx={{
+                    mb: 0.5,
+                    borderRadius: 3,
+                    px: 2,
+                    py: 1.2,
+                    justifyContent: collapsed ? "center" : "flex-start",
+                    color: isActive ? "#fff" : PRIMARY_BORDER,
+                    ...(isActive && {
+                      background: PRIMARY,
+                      boxShadow: `0 4px 14px rgba(30,64,175,0.4)`
+                    }),
+                    "&:hover": {
+                      background: "rgba(255,255,255,0.1)",
+                      color: "#fff",
+                      transform: "translateX(3px)"
+                    }
+                  }}
+                >
+                  <ListItemIcon sx={{ color: "inherit", minWidth: 0, mr: collapsed ? 0 : 2 }}>
+                    {menu.icon}
+                  </ListItemIcon>
+                  {!collapsed && (
+                    <ListItemText
+                      primary={menu.label}
+                      primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
+                    />
+                  )}
+                </ListItemButton>
+              </Tooltip>
             )}
           </NavLink>
         ))}
 
         {/* Logout */}
-        <ListItemButton
-          onClick={logout}
-          sx={{
-            mt: 2, borderRadius: 3, px: 2, py: 1.2,
-            color: PRIMARY_BORDER,
-            "&:hover": { background: "rgba(239,68,68,0.2)", color: "#fca5a5" }
-          }}
-        >
-          <ListItemIcon sx={{ color: "inherit", minWidth: 0, mr: collapsed ? 0 : 2 }}>
-            <LogoutIcon />
-          </ListItemIcon>
-          {!collapsed && (
-            <ListItemText
-              primary="Logout"
-              primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-            />
-          )}
-        </ListItemButton>
+        <Tooltip title={collapsed ? "Logout" : ""} placement="right" arrow>
+          <ListItemButton
+            onClick={logout}
+            sx={{
+              mt: 2, borderRadius: 3, px: 2, py: 1.2,
+              justifyContent: collapsed ? "center" : "flex-start",
+              color: PRIMARY_BORDER,
+              "&:hover": { background: "rgba(239,68,68,0.2)", color: "#fca5a5" }
+            }}
+          >
+            <ListItemIcon sx={{ color: "inherit", minWidth: 0, mr: collapsed ? 0 : 2 }}>
+              <LogoutIcon />
+            </ListItemIcon>
+            {!collapsed && (
+              <ListItemText
+                primary="Logout"
+                primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
+              />
+            )}
+          </ListItemButton>
+        </Tooltip>
       </List>
     </Drawer>
   )
