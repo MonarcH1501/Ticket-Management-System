@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
 use App\Models\Ticket;
-use Illuminate\Http\JsonResponse;
-
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class TicketAnalyticsController extends Controller
-{   
-
+{
     private function baseQuery($user)
     {
         $query = Ticket::query();
@@ -37,108 +35,121 @@ class TicketAnalyticsController extends Controller
         return $query->where('created_by', $user->id);
     }
 
-    public function summary(Request $request)
+    private function summaryData($user): array
     {
-        $user = $request->user();
-        $query = $this->baseQuery($user);
+        $overview = $this->baseQuery($user)
+            ->selectRaw(
+                'COUNT(*) as total,
+                SUM(current_status = ?) as in_progress,
+                SUM(current_status = ?) as completed',
+                [
+                    TicketStatus::IN_PROGRESS->value,
+                    TicketStatus::COMPLETED->value,
+                ]
+            )
+            ->first();
 
         $data = [
             'overview' => [
-                'total' => (clone $query)->count(),
-                'in_progress' => (clone $query)
-                    ->where('current_status', \App\Enums\TicketStatus::IN_PROGRESS)
-                    ->count(),
-                'completed' => (clone $query)
-                    ->where('current_status', \App\Enums\TicketStatus::COMPLETED)
-                    ->count(),
+                'total' => (int) ($overview->total ?? 0),
+                'in_progress' => (int) ($overview->in_progress ?? 0),
+                'completed' => (int) ($overview->completed ?? 0),
             ],
             'my_action' => [],
         ];
 
-        // 🔥 ACTION LOGIC PER ROLE
-
         if ($user->hasRole('kepala_unit')) {
-
-            $data['my_action']['need_my_approval'] = Ticket::where('current_status', \App\Enums\TicketStatus::WAITING_UNIT_APPROVAL)
+            $data['my_action']['need_my_approval'] = Ticket::where('current_status', TicketStatus::WAITING_UNIT_APPROVAL->value)
                 ->where('current_approver_id', $user->id)
                 ->count();
         }
 
         if ($user->hasRole('kepala_department')) {
-
-            $data['my_action']['need_my_approval'] = Ticket::where('current_status', \App\Enums\TicketStatus::WAITING_DEPARTMENT_APPROVAL)
+            $actionCounts = Ticket::selectRaw(
+                    'SUM(current_status = ?) as need_my_approval,
+                    SUM(current_status = ?) as need_my_review',
+                    [
+                        TicketStatus::WAITING_DEPARTMENT_APPROVAL->value,
+                        TicketStatus::WAITING_DEPARTMENT_REVIEW->value,
+                    ]
+                )
                 ->where('current_approver_id', $user->id)
-                ->count();
+                ->first();
 
-            $data['my_action']['need_my_review'] = Ticket::where('current_status', \App\Enums\TicketStatus::WAITING_DEPARTMENT_REVIEW)
-                ->where('current_approver_id', $user->id)
-                ->count();
+            $data['my_action']['need_my_approval'] = (int) ($actionCounts->need_my_approval ?? 0);
+            $data['my_action']['need_my_review'] = (int) ($actionCounts->need_my_review ?? 0);
         }
 
         if ($user->hasRole('pic')) {
-
             $data['my_action']['assigned_to_me'] = Ticket::where('pic_id', $user->id)
                 ->whereIn('current_status', [
-                    \App\Enums\TicketStatus::WAITING_PIC_ASSIGNED,
-                    \App\Enums\TicketStatus::IN_PROGRESS
+                    TicketStatus::WAITING_PIC_ASSIGNED->value,
+                    TicketStatus::IN_PROGRESS->value,
                 ])
                 ->count();
         }
 
-        return response()->json($data);
+        return $data;
     }
 
-    public function metrics(Request $request)
+    private function metricsData($user): array
     {
-        $query = $this->baseQuery($request->user());
+        $query = $this->baseQuery($user);
 
         $avgCompletionTime = (clone $query)
             ->whereNotNull('closed_at')
-            ->get()
-            ->avg(function ($ticket) {
-                return Carbon::parse($ticket->created_at)
-                    ->diffInHours($ticket->closed_at);
-            });
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, closed_at)) as average_hours')
+            ->value('average_hours');
 
-        return response()->json([
+        return [
             'completed_today' => (clone $query)
                 ->whereDate('closed_at', Carbon::today())
                 ->count(),
 
             'completed_this_month' => (clone $query)
                 ->whereMonth('closed_at', Carbon::now()->month)
+                ->whereYear('closed_at', Carbon::now()->year)
                 ->count(),
 
             'average_completion_hours' => round($avgCompletionTime ?? 0, 2),
-        ]);
+        ];
     }
 
-    public function trends(Request $request)
+    private function trendsData($user): array
     {
-        $query = $this->baseQuery($request->user());
+        $query = $this->baseQuery($user);
+        $start = now()->subDays(6)->startOfDay();
+        $end = now()->endOfDay();
 
-        $days = collect(range(0, 6))->map(function ($i) use ($query) {
-            $date = now()->subDays($i)->toDateString();
+        $created = (clone $query)
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
+            ->whereBetween('created_at', [$start, $end])
+            ->groupByRaw('DATE(created_at)')
+            ->pluck('total', 'date');
 
-            return [
-                'date' => $date,
-                'created' => (clone $query)
-                    ->whereDate('created_at', $date)
-                    ->count(),
-                'completed' => (clone $query)
-                    ->whereDate('closed_at', $date)
-                    ->count(),
-            ];
-        })->reverse()->values();
+        $completed = (clone $query)
+            ->selectRaw('DATE(closed_at) as date, COUNT(*) as total')
+            ->whereBetween('closed_at', [$start, $end])
+            ->groupByRaw('DATE(closed_at)')
+            ->pluck('total', 'date');
 
-        return response()->json($days);
+        return collect(range(0, 6))
+            ->map(function ($i) use ($created, $completed) {
+                $date = now()->subDays(6 - $i)->toDateString();
+
+                return [
+                    'date' => $date,
+                    'created' => (int) ($created[$date] ?? 0),
+                    'completed' => (int) ($completed[$date] ?? 0),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
-    public function recentTickets(Request $request)
+    private function recentTicketsData($user)
     {
-        $query = $this->baseQuery($request->user());
-
-        $tickets = $query
+        return $this->baseQuery($user)
             ->latest()
             ->limit(5)
             ->get([
@@ -146,10 +157,87 @@ class TicketAnalyticsController extends Controller
                 'ticket_code',
                 'title',
                 'current_status',
-                'created_at'
+                'created_at',
             ]);
+    }
 
-        return response()->json($tickets);
+    private function myTasksData($user): array
+    {
+        $closedStatuses = [
+            TicketStatus::COMPLETED->value,
+            TicketStatus::CLOSED->value,
+        ];
+
+        $relations = ['unit:id,name', 'department:id,name', 'pic:id,name'];
+
+        $todo = Ticket::with($relations)
+            ->where('current_approver_id', $user->id)
+            ->whereNotIn('current_status', $closedStatuses)
+            ->latest()
+            ->limit(20)
+            ->get();
+
+        $inProgress = $this->baseQuery($user)
+            ->with($relations)
+            ->whereNotIn('current_status', $closedStatuses)
+            ->where(function ($q) use ($user) {
+                $q->where('pic_id', $user->id)
+                    ->orWhereHas('approvals', function ($q) use ($user) {
+                        $q->where('approved_by', $user->id);
+                    });
+            })
+            ->where(function ($q) use ($user) {
+                $q->whereNull('current_approver_id')
+                    ->orWhere('current_approver_id', '!=', $user->id);
+            })
+            ->latest()
+            ->limit(20)
+            ->get();
+
+        $done = $this->baseQuery($user)
+            ->with($relations)
+            ->whereIn('current_status', $closedStatuses)
+            ->latest()
+            ->limit(20)
+            ->get();
+
+        return [
+            'todo' => $todo->values(),
+            'in_progress' => $inProgress->values(),
+            'done' => $done->values(),
+        ];
+    }
+
+    public function dashboard(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'summary' => $this->summaryData($user),
+            'trends' => $this->trendsData($user),
+            'recent' => $this->recentTicketsData($user),
+            'my_tasks' => $this->myTasksData($user),
+        ]);
+    }
+
+    public function summary(Request $request)
+    {
+        return response()->json($this->summaryData($request->user()));
+    }
+
+    public function metrics(Request $request)
+    {
+        return response()->json($this->metricsData($request->user()));
+    }
+
+    public function trends(Request $request)
+    {
+        return response()->json($this->trendsData($request->user()));
+    }
+
+    public function recentTickets(Request $request)
+    {
+        return response()->json($this->recentTicketsData($request->user()));
     }
 
     public function byDepartment(Request $request)
@@ -179,43 +267,6 @@ class TicketAnalyticsController extends Controller
 
     public function myTasks(Request $request)
     {
-        $user = $request->user();
-
-        $tickets = Ticket::with('approvals','unit','department','pic')->get();
-        $todo = [];
-        $inProgress = [];
-        $done = [];
-
-        foreach ($tickets as $ticket) {
-
-            $status = strtolower($ticket->current_status->value ?? '');
-
-            if (in_array($status, ['completed', 'closed'])) {
-                $done[] = $ticket;
-                continue;
-            }
-            if ($ticket->current_approver_id === $user->id) {
-                $todo[] = $ticket;
-                continue;
-            }
-
-            $approvals = $ticket->approvals ?? collect();
-
-            $hasApproved = $approvals
-                ->where('approved_by', $user->id)
-                ->count() > 0;
-
-            $isPic = $ticket->pic_id === $user->id;
-
-            if ($hasApproved || $isPic) {
-                $inProgress[] = $ticket;
-            }
-        }
-
-        return response()->json([
-            'todo' => array_values($todo),
-            'in_progress' => array_values($inProgress),
-            'done' => array_values($done),
-        ]);
+        return response()->json($this->myTasksData($request->user()));
     }
 }

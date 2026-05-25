@@ -25,16 +25,27 @@ export default function TicketForm({ onSubmit, loading }) {
   const [fileError, setFileError]   = useState("")
   const [departments, setDepts]     = useState([])
   const [categories, setCategories] = useState([])
+  const [loadingDepts, setLoadingDepts] = useState(true)
+  const [loadingCats, setLoadingCats]   = useState(false)
   const [form, setForm] = useState({ title: "", description: "", department_id: "", ticket_category_id: "" })
 
   useEffect(() => {
-    api.get("/departments").then(r => setDepts(r.data)).catch(console.error)
+    setLoadingDepts(true)
+    api.get("/departments")
+      .then(r => setDepts(r.data))
+      .catch(console.error)
+      .finally(() => setLoadingDepts(false))
   }, [])
 
   useEffect(() => {
-    if (!form.department_id) return
+    if (!form.department_id) {
+      setCategories([])
+      return
+    }
+    setLoadingCats(true)
     api.get("/ticket-categories", { params: { department_id: form.department_id } })
       .then(r => setCategories(r.data)).catch(console.error)
+      .finally(() => setLoadingCats(false))
   }, [form.department_id])
 
   const handleChange = e => {
@@ -90,8 +101,9 @@ export default function TicketForm({ onSubmit, loading }) {
 
           <div>
             <Label>Department</Label>
-            <select name="department_id" value={form.department_id} onChange={handleChange} style={selectStyle} onFocus={focus} onBlur={blur}>
-              <option value="">Select department...</option>
+            <select name="department_id" value={form.department_id} onChange={handleChange} disabled={loadingDepts}
+              style={{ ...selectStyle, opacity: loadingDepts ? .65 : 1, cursor: loadingDepts ? "wait" : "pointer" }} onFocus={focus} onBlur={blur}>
+              <option value="">{loadingDepts ? "Loading departments..." : "Select department..."}</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </div>
@@ -99,13 +111,14 @@ export default function TicketForm({ onSubmit, loading }) {
           <div>
             <Label>Category</Label>
             <select name="ticket_category_id" value={form.ticket_category_id} onChange={handleChange}
-              disabled={!form.department_id}
-              style={{ ...selectStyle, opacity: !form.department_id ? .5 : 1, cursor: !form.department_id ? "not-allowed" : "pointer" }}
+              disabled={!form.department_id || loadingCats}
+              style={{ ...selectStyle, opacity: !form.department_id || loadingCats ? .5 : 1, cursor: loadingCats ? "wait" : !form.department_id ? "not-allowed" : "pointer" }}
               onFocus={focus} onBlur={blur}>
-              <option value="">{!form.department_id ? "Select department first" : "Select category..."}</option>
+              <option value="">{!form.department_id ? "Select department first" : loadingCats ? "Loading categories..." : "Select category..."}</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             {!form.department_id && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Choose a department first</div>}
+            {form.department_id && loadingCats && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Fetching categories...</div>}
           </div>
 
           <div style={{ gridColumn: "1 / -1" }}>

@@ -38,12 +38,21 @@ export default function UsersTab({ users, roles, refresh }) {
   const [units, setUnits]             = useState([])
   const [departments, setDepartments] = useState([])
   const [positions, setPositions]     = useState([])
+  const [loadingLookups, setLoadingLookups] = useState(true)
 
   useEffect(() => {
     const parse = r => { const d = r.data?.data ?? r.data; return Array.isArray(d) ? d : [] }
-    api.get('/units').then(r => setUnits(parse(r))).catch(console.error)
-    api.get('/departments').then(r => setDepartments(parse(r))).catch(console.error)
-    api.get('/positions').then(r => setPositions(parse(r))).catch(console.error)
+    setLoadingLookups(true)
+    Promise.all([
+      api.get('/units'),
+      api.get('/departments'),
+      api.get('/positions')
+    ]).then(([uRes, dRes, pRes]) => {
+      setUnits(parse(uRes))
+      setDepartments(parse(dRes))
+      setPositions(parse(pRes))
+    }).catch(console.error)
+      .finally(() => setLoadingLookups(false))
   }, [])
 
   useEffect(() => {
@@ -204,22 +213,25 @@ export default function UsersTab({ users, roles, refresh }) {
               )}
               <div>
                 <Label>Unit</Label>
-                <select value={formData.unit_id || ''} onChange={e => setFormData(p => ({ ...p, unit_id: e.target.value }))} style={selectStyle} onFocus={focus} onBlur={blur}>
-                  <option value="">None</option>
+                <select value={formData.unit_id || ''} onChange={e => setFormData(p => ({ ...p, unit_id: e.target.value }))} disabled={loadingLookups}
+                  style={{ ...selectStyle, opacity: loadingLookups ? .65 : 1, cursor: loadingLookups ? "wait" : "pointer" }} onFocus={focus} onBlur={blur}>
+                  <option value="">{loadingLookups ? "Loading units..." : "None"}</option>
                   {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               <div>
                 <Label>Department</Label>
-                <select value={formData.department_id || ''} onChange={e => setFormData(p => ({ ...p, department_id: e.target.value }))} style={selectStyle} onFocus={focus} onBlur={blur}>
-                  <option value="">None</option>
+                <select value={formData.department_id || ''} onChange={e => setFormData(p => ({ ...p, department_id: e.target.value }))} disabled={loadingLookups}
+                  style={{ ...selectStyle, opacity: loadingLookups ? .65 : 1, cursor: loadingLookups ? "wait" : "pointer" }} onFocus={focus} onBlur={blur}>
+                  <option value="">{loadingLookups ? "Loading departments..." : "None"}</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div>
                 <Label>Position</Label>
-                <select value={formData.position_id || ''} onChange={e => setFormData(p => ({ ...p, position_id: e.target.value }))} style={selectStyle} onFocus={focus} onBlur={blur}>
-                  <option value="">None</option>
+                <select value={formData.position_id || ''} onChange={e => setFormData(p => ({ ...p, position_id: e.target.value }))} disabled={loadingLookups}
+                  style={{ ...selectStyle, opacity: loadingLookups ? .65 : 1, cursor: loadingLookups ? "wait" : "pointer" }} onFocus={focus} onBlur={blur}>
+                  <option value="">{loadingLookups ? "Loading positions..." : "None"}</option>
                   {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>

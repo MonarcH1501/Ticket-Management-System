@@ -29,13 +29,16 @@ const formatSize = (bytes) => {
 
 export default function TicketAttachments({ ticketId }) {
   const [grouped, setGrouped]     = useState({})
+  const [loading, setLoading]     = useState(true)
   const [loadingId, setLoadingId] = useState(null)
   const totalFiles = Object.values(grouped).flat().length
 
   useEffect(() => {
+    setLoading(true)
     api.get(`/tickets/${ticketId}/attachments`)
       .then(res => setGrouped(res.data))
       .catch(() => toast.error("Gagal load attachment"))
+      .finally(() => setLoading(false))
   }, [ticketId])
 
   const downloadFile = async (fileId, fileName) => {
@@ -71,7 +74,12 @@ export default function TicketAttachments({ ticketId }) {
       </div>
 
       <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
-        {totalFiles === 0 ? (
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8", fontSize: 13 }}>
+            <span style={{ display: "inline-block", width: 18, height: 18, border: `2px solid ${PRIMARY_BORDER}`, borderTopColor: PRIMARY, borderRadius: "50%", animation: "spin .7s linear infinite", marginBottom: 10 }} />
+            <div>Loading attachments...</div>
+          </div>
+        ) : totalFiles === 0 ? (
           <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8", fontSize: 13 }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>
             No attachments yet

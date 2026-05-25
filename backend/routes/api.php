@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\ForwardTicketController;
     Route::get('/tickets/by-department', [TicketAnalyticsController::class,'byDepartment']);
     Route::get('/tickets/by-status', [TicketAnalyticsController::class,'byStatus']);
     Route::get('/tickets/my-tasks', [TicketAnalyticsController::class,'myTasks']);
+    Route::get('/tickets/dashboard', [TicketAnalyticsController::class,'dashboard']);
     Route::get('/tickets', [TicketController::class, 'index']);
     Route::get('/tickets/{ticket}', [TicketController::class, 'show']);
     Route::post('/tickets/{ticket}/forward', [ForwardTicketController::class, 'handle']);
@@ -103,7 +104,6 @@ use App\Http\Controllers\Api\ForwardTicketController;
 
     });
     
-
 
 
 

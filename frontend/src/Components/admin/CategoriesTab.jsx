@@ -25,9 +25,14 @@ export default function CategoriesTab({ categories, refresh }) {
   const [departments, setDepts] = useState([])
   const [saving, setSaving]     = useState(false)
   const [toast, setToast]       = useState(null)
+  const [loadingDepts, setLoadingDepts] = useState(true)
 
   useEffect(() => {
-    api.get('/departments').then(r => setDepts(r.data.data || r.data)).catch(console.error)
+    setLoadingDepts(true)
+    api.get('/departments')
+      .then(r => setDepts(r.data.data || r.data))
+      .catch(console.error)
+      .finally(() => setLoadingDepts(false))
   }, [])
 
   useEffect(() => {
@@ -122,8 +127,9 @@ export default function CategoriesTab({ categories, refresh }) {
               <div><Label>Name *</Label><input name="name" value={formData.name || ""} onChange={handleChange} style={inputStyle} onFocus={focus} onBlur={blur} placeholder="Category name" /></div>
               <div>
                 <Label>Department *</Label>
-                <select name="department_id" value={formData.department_id || ""} onChange={handleChange} style={selectStyle} onFocus={focus} onBlur={blur}>
-                  <option value="">Select department...</option>
+                <select name="department_id" value={formData.department_id || ""} onChange={handleChange} disabled={loadingDepts}
+                  style={{ ...selectStyle, opacity: loadingDepts ? .65 : 1, cursor: loadingDepts ? "wait" : "pointer" }} onFocus={focus} onBlur={blur}>
+                  <option value="">{loadingDepts ? "Loading departments..." : "Select department..."}</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>

@@ -13,6 +13,13 @@ const sectionStyle = {
   borderRadius: 12, padding: "14px 16px", fontSize: 13, color: "#0369a1"
 }
 
+const LoadingLine = ({ children }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#94a3b8" }}>
+    <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${PRIMARY_BORDER}`, borderTopColor: PRIMARY, display: "inline-block", animation: "spin .7s linear infinite" }} />
+    {children}
+  </div>
+)
+
 const inputStyle = {
   width: "100%", padding: "10px 12px", fontSize: 13, borderRadius: 8,
   border: `1.5px solid ${PRIMARY_BORDER}`, background: "#fff", color: "#0f172a",
@@ -89,26 +96,36 @@ export default function TicketActions({ ticket, refresh }) {
   const [showForward, setShowForward]     = useState(false)
   const [forwardDeptId, setForwardDeptId] = useState("")
   const [forwardNotes, setForwardNotes]   = useState("")
+  const [loadingUser, setLoadingUser]     = useState(true)
+  const [loadingPics, setLoadingPics]     = useState(false)
+  const [loadingDepts, setLoadingDepts]   = useState(false)
 
   const MAX_SIZE_MB    = 10
   const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
   useEffect(() => {
-    api.get("/user").then(r => setUser(r.data.data ?? r.data)).catch(console.error)
+    setLoadingUser(true)
+    api.get("/user")
+      .then(r => setUser(r.data.data ?? r.data))
+      .catch(console.error)
+      .finally(() => setLoadingUser(false))
   }, [])
 
   useEffect(() => {
     const deptId = ticket?.department?.id
     if (!deptId) return
+    setLoadingPics(true)
     api.get(`/users?role=pic&department_id=${deptId}`)
       .then(r => setPics(r.data.data ?? r.data))
       .catch(console.error)
+      .finally(() => setLoadingPics(false))
   }, [ticket])
 
   // Load departments untuk forward (hanya saat isDept)
   useEffect(() => {
     const status = (ticket?.current_status || "").toLowerCase()
     if (status !== "waiting_department_approval") return
+    setLoadingDepts(true)
     api.get("/departments")
       .then(r => {
         const all = r.data.data ?? r.data
@@ -116,6 +133,7 @@ export default function TicketActions({ ticket, refresh }) {
         setDepartments(all.filter(d => d.id !== ticket?.department?.id))
       })
       .catch(console.error)
+      .finally(() => setLoadingDepts(false))
   }, [ticket])
 
   const handleAction = async (url, data = {}, resetFn) => {
@@ -165,6 +183,34 @@ export default function TicketActions({ ticket, refresh }) {
   }
 
   const status      = (ticket.current_status || "").toLowerCase()
+  const actionCandidate = [
+    "waiting_unit_approval",
+    "waiting_department_approval",
+    "waiting_pic_assigned",
+    "waiting_department_review",
+    "in_progress",
+  ].includes(status)
+
+  if (loadingUser && actionCandidate) {
+    return (
+      <div style={{
+        background: "#fff", borderRadius: 16,
+        border: `1px solid ${PRIMARY_BORDER}`,
+        boxShadow: "0 1px 8px rgba(0,0,0,.06)",
+        overflow: "hidden", fontFamily: "'DM Sans', sans-serif"
+      }}>
+        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${PRIMARY_BG}`, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: PRIMARY, boxShadow: `0 0 0 3px ${PRIMARY_BG}` }} />
+          <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Actions Required</span>
+        </div>
+        <div style={{ padding: "16px 20px" }}>
+          <LoadingLine>Checking available actions...</LoadingLine>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
+
   const isApprover  = Number(user?.id) === Number(ticket.current_approver_id)
   const isPIC       = Number(user?.id) === Number(ticket?.pic_id || ticket?.pic?.id)
   const isUnit      = status === "waiting_unit_approval"
@@ -251,15 +297,17 @@ export default function TicketActions({ ticket, refresh }) {
                       <select
                         value={forwardDeptId}
                         onChange={e => setForwardDeptId(e.target.value)}
-                        style={selectStyle}
+                        disabled={loadingDepts}
+                        style={{ ...selectStyle, opacity: loadingDepts ? .65 : 1, cursor: loadingDepts ? "wait" : "pointer" }}
                         onFocus={e => (e.target.style.borderColor = "#7c3aed")}
                         onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}
                       >
-                        <option value="" disabled>Pilih department...</option>
+                        <option value="" disabled>{loadingDepts ? "Loading departments..." : "Pilih department..."}</option>
                         {departments.map(d => (
                           <option key={d.id} value={d.id}>{d.name}</option>
                         ))}
                       </select>
+                      {loadingDepts && <div style={{ marginTop: 6 }}><LoadingLine>Fetching departments...</LoadingLine></div>}
                     </div>
 
                     <NotesField
@@ -299,12 +347,14 @@ export default function TicketActions({ ticket, refresh }) {
 
             <div>
               <Label>PIC</Label>
-              <select value={selectedPic} onChange={e => setSelectedPic(e.target.value)} style={selectStyle}
+              <select value={selectedPic} onChange={e => setSelectedPic(e.target.value)} disabled={loadingPics}
+                style={{ ...selectStyle, opacity: loadingPics ? .65 : 1, cursor: loadingPics ? "wait" : "pointer" }}
                 onFocus={e => (e.target.style.borderColor = PRIMARY)}
                 onBlur={e => (e.target.style.borderColor = PRIMARY_BORDER)}>
-                <option value="" disabled>Select PIC...</option>
+                <option value="" disabled>{loadingPics ? "Loading PIC..." : "Select PIC..."}</option>
                 {pics.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
+              {loadingPics && <div style={{ marginTop: 6 }}><LoadingLine>Fetching available PIC...</LoadingLine></div>}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

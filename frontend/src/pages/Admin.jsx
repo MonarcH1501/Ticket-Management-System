@@ -2,7 +2,7 @@ import { useState, useEffect, useContext, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../context/auth-context'
 import api from '../api/axios'
-import { Tabs, Tab } from '@mui/material'
+import { CircularProgress, Tabs, Tab } from '@mui/material'
 import {
   PRIMARY,
   PRIMARY_BG,
@@ -36,6 +36,8 @@ export default function Admin() {
   const [permissions, setPermissions] = useState([])
   const [users, setUsers] = useState([])
   const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const isAdmin = user?.roles?.some(r =>
     ['admin', 'superadmin'].includes(r.name)
@@ -50,6 +52,8 @@ export default function Admin() {
 
   // Shared refresh function
   const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
       const [rRes, pRes, uRes, cRes] = await Promise.all([
         api.get('/admin/roles'),
@@ -65,6 +69,7 @@ export default function Admin() {
 
     } catch (err) {
       console.error(err)
+      setError('Failed to load admin data')
 
       if (err.response?.status === 403) {
         navigate('/403', { replace: true })
@@ -73,6 +78,8 @@ export default function Admin() {
       if (err.response?.status === 500) {
         navigate('/500', { replace: true })
       }
+    } finally {
+      setLoading(false)
     }
   }, [navigate])
 
@@ -179,31 +186,47 @@ export default function Admin() {
 
         {/* Content */}
         <div style={{ padding: '20px 24px' }}>
-          <TabPanel value={tab} index={0}>
-            <UsersTab
-              users={users}
-              roles={roles}
-              permissions={permissions}
-              refresh={loadData}
-            />
-          </TabPanel>
+          {loading ? (
+            <div style={{ minHeight: 260, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#94a3b8', fontSize: 13 }}>
+              <CircularProgress size={34} sx={{ color: PRIMARY }} />
+              <span>Loading admin data...</span>
+            </div>
+          ) : error ? (
+            <div style={{ padding: '14px 18px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: 13 }}>
+              {error}
+            </div>
+          ) : (
+            <>
+              <TabPanel value={tab} index={0}>
+                <UsersTab
+                  users={users}
+                  roles={roles}
+                  permissions={permissions}
+                  refresh={loadData}
+                  loading={loading}
+                />
+              </TabPanel>
 
-          <TabPanel value={tab} index={1}>
-            <RolesTab
-              roles={roles}
-              permissions={permissions}
-              setRoles={setRoles}
-              setPermissions={setPermissions}
-              refresh={loadData}
-            />
-          </TabPanel>
+              <TabPanel value={tab} index={1}>
+                <RolesTab
+                  roles={roles}
+                  permissions={permissions}
+                  setRoles={setRoles}
+                  setPermissions={setPermissions}
+                  refresh={loadData}
+                  loading={loading}
+                />
+              </TabPanel>
 
-          <TabPanel value={tab} index={2}>
-            <CategoriesTab
-              categories={categories}
-              refresh={loadData}
-            />
-          </TabPanel>
+              <TabPanel value={tab} index={2}>
+                <CategoriesTab
+                  categories={categories}
+                  refresh={loadData}
+                  loading={loading}
+                />
+              </TabPanel>
+            </>
+          )}
         </div>
       </div>
     </div>

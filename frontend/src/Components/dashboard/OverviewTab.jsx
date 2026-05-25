@@ -16,14 +16,11 @@ export default function OverviewTab() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [s, t, r, m] = await Promise.all([
-          api.get("/tickets/summary"),
-          api.get("/tickets/trends"),
-          api.get("/tickets/recent"),
-          api.get("/tickets/my-tasks")
-        ])
-        setSummary(s.data); setTrends(t.data); setRecent(r.data)
-        setTodo(m.data?.todo ?? [])
+        const res = await api.get("/tickets/dashboard")
+        setSummary(res.data?.summary)
+        setTrends(res.data?.trends ?? [])
+        setRecent(res.data?.recent ?? [])
+        setTodo(res.data?.my_tasks?.todo ?? [])
       } catch (err) { console.error(err) }
       finally {
         setLoading(false)
