@@ -1,0 +1,31 @@
+# This is an example configuration file
+# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+
+name: Example Config
+version: 1.0.0
+schema: v1
+
+# Define which models can be used
+# https://docs.continue.dev/customization/models
+models: 
+  - name: my gpt-5
+    provider: openai
+    model: gpt-5
+    apiKey: YOUR_OPENAI_API_KEY_HERE
+  
+  # ✅ TAMBAHKAN INI - DEEPSEEK
+  - name: DeepSeek V4
+    provider: openai
+    model: deepseek-chat
+    apiKey: sk-4d185b562ba14b4a9c4a8d65d93590b2
+    apiBase: https://api.deepseek.com/v1
+  
+  - uses: ollama/qwen2.5-coder-7b
+  - uses: anthropic/claude-4-sonnet
+    with:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+# MCP Servers that Continue can access
+# https://docs.continue.dev/customization/mcp-tools
+mcpServers:
+  - uses: anthropic/memory-mcp

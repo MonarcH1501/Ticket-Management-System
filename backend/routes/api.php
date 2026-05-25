@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AdminController;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use App\Http\Controllers\Api\ForwardTicketController;
+use App\Http\Controllers\Api\NotificationController;
 
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/login/google', [AuthController::class, 'redirectToGoogle']);
@@ -28,6 +29,9 @@ use App\Http\Controllers\Api\ForwardTicketController;
 
     //Route Get
     Route::get('/users', [UserController::class, 'index']);
+    Route::get('/notifications/unread', [NotificationController::class, 'unread']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::get('/tickets/summary', [TicketAnalyticsController::class, 'summary']);
     Route::get('/tickets/metrics', [TicketAnalyticsController::class, 'metrics']);
     Route::get('/tickets/trends', [TicketAnalyticsController::class, 'trends']);
@@ -104,7 +108,6 @@ use App\Http\Controllers\Api\ForwardTicketController;
 
     });
     
-
 
 
 

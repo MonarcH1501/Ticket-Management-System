@@ -4,6 +4,7 @@ import { Box, TextField, Avatar, IconButton, Menu, MenuItem, Typography, Divider
 import { AuthContext } from "../context/auth-context";
 import { useNavigate } from "react-router-dom";
 import LogoutIcon from "@mui/icons-material/Logout";
+import NotificationBell from "../Components/NotificationBell";
 
 export default function Header() {
   const { user, logout } = useContext(AuthContext);
@@ -56,7 +57,9 @@ export default function Header() {
         sx={{ width: 320 }} 
       />
 
-      <Box>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <NotificationBell />
+
         <Tooltip title={user?.name || "User"}>
           <IconButton onClick={handleClick} size="small">
             <Avatar 

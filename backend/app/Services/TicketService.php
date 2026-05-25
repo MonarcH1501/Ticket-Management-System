@@ -6,6 +6,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Department;
 use App\Enums\TicketStatus;
+use App\Notifications\TicketNeedsApprovalNotification;
 use Illuminate\Support\Str;
 
 
@@ -24,7 +25,7 @@ class TicketService
         $ticketCode = $this->generateTicketCode();
 
         // 4. Create ticket
-        return Ticket::create([
+        $ticket = Ticket::create([
             'ticket_code'         => $ticketCode,
             'title'               => $data['title'],
             'description'         => $data['description'],
@@ -36,6 +37,16 @@ class TicketService
             'current_approver_id' => $initialApprover?->id,
             'priority'            => null,
         ]);
+
+        if ($initialApprover) {
+            try {
+                $initialApprover->notify(new TicketNeedsApprovalNotification($ticket));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $ticket;
     }
 
 
