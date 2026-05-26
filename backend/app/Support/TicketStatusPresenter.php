@@ -1,7 +1,7 @@
 <?php
 
+namespace App\Support;
 use App\Enums\TicketStatus;
-
 
 class TicketStatusPresenter
 {
