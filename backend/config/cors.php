@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173','https://carlos-expired-wilderness-victory.trycloudflare.com'],
+    'allowed_origins' => ['http://localhost:5173','https://ticket-management-system-cyan.vercel.app'],
 
     'allowed_origins_patterns' => [],
 
