@@ -21,6 +21,24 @@ use App\Http\Controllers\Api\NotificationController;
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/login/google', [AuthController::class, 'redirectToGoogle']);
     Route::get('/login/google/callback', [AuthController::class, 'handleGoogleCallback']);
+    Route::get('/ping-db', function () {
+    try {
+        DB::connection()->getPdo();
+
+        return response()->json([
+            'success' => true,
+            'database' => env('DB_DATABASE'),
+            'host' => env('DB_HOST'),
+            'users_count' => DB::table('users')->count(),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+});
+
     Route::middleware('auth:sanctum')->group(function () {
 
     //Route Post
