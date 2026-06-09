@@ -5,14 +5,18 @@ namespace App\Services;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\TicketApproval;
-use App\Models\TicketAttachment;
 use App\Enums\TicketStatus;
 use App\Workflows\TicketWorkflow;
 use Illuminate\Support\Facades\DB;
 use LogicException;
+use RuntimeException;
 
 class SubmitTicketService
 {
+    public function __construct(
+        private TicketAttachmentStorageService $attachments
+    ) {}
+
     public function handle(User $user, Ticket $ticket, $file = null): Ticket
     {
         return DB::transaction(function () use ($user, $ticket, $file) {
@@ -32,15 +36,11 @@ class SubmitTicketService
 
             // ================= UPLOAD FILE =================
             if ($file) {
-                $path = $file->store('tickets/' . $ticket->id, 'public');
-
-                TicketAttachment::create([
-                    'ticket_id'   => $ticket->id,
-                    'file_path'   => $path,
-                    'file_name'   => $file->getClientOriginalName(),
-                    'mime_type'   => $file->getMimeType(),
-                    'uploaded_by' => $user->id,
-                ]);
+                try {
+                    $this->attachments->store($ticket, $file, $user->id, 'complete');
+                } catch (RuntimeException $e) {
+                    throw new LogicException($e->getMessage());
+                }
             }
 
             // ================= APPROVAL LOG =================

@@ -3,33 +3,30 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Ticket;
-use App\Models\TicketAttachment;
+use App\Services\TicketAttachmentStorageService;
+use Illuminate\Http\Request;
+use RuntimeException;
 
 class TicketAttachmentController extends Controller
 {
-   
-    private function canAccessTicket($user, $ticket)
+    public function __construct(
+        private TicketAttachmentStorageService $attachments
+    ) {}
+
+    private function canAccessTicket($user, Ticket $ticket): bool
     {
-        return 
+        return
             $user->hasRole('superadmin') ||
-
             $ticket->created_by === $user->id ||
-
             $ticket->pic_id === $user->id ||
-
             $ticket->current_approver_id === $user->id;
     }
 
-    /**
-     * 📤 Upload Attachment
-     */
-    // store() — terima stage dari request
     public function store(Request $request, Ticket $ticket)
     {
         $request->validate([
-            'file'  => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,docx,xlsx',
+            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,docx,xlsx',
             'stage' => 'nullable|string|in:initial,in_progress,approval,complete',
         ]);
 
@@ -39,25 +36,25 @@ class TicketAttachmentController extends Controller
             abort(403, 'Tidak memiliki akses ke ticket ini');
         }
 
-        $file = $request->file('file');
-        $path = $file->store('tickets/' . $ticket->id, 'public');
-
-        $attachment = TicketAttachment::create([
-            'ticket_id'   => $ticket->id,
-            'file_path'   => $path,
-            'file_name'   => $file->getClientOriginalName(),
-            'mime_type'   => $file->getMimeType(),
-            'uploaded_by' => $user->id,
-            'stage'       => $request->input('stage', 'initial'), // ← default initial
-        ]);
+        try {
+            $attachment = $this->attachments->store(
+                $ticket,
+                $request->file('file'),
+                $user->id,
+                $request->input('stage', 'initial')
+            );
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json([
             'message' => 'File uploaded successfully',
-            'data'    => $attachment
+            'data' => $attachment,
         ], 201);
     }
 
-    // index() — return dengan stage info
     public function index(Request $request, Ticket $ticket)
     {
         $user = $request->user();
@@ -70,14 +67,11 @@ class TicketAttachmentController extends Controller
             ->with('uploader:id,name')
             ->latest()
             ->get()
-            ->groupBy('stage'); // ← grouped by stage
+            ->groupBy('stage');
 
         return response()->json($attachments);
     }
 
-    /**
-     * Delete Attachment
-     */
     public function destroy(Request $request, Ticket $ticket, $attachmentId)
     {
         $user = $request->user();
@@ -90,7 +84,6 @@ class TicketAttachmentController extends Controller
             ->where('id', $attachmentId)
             ->firstOrFail();
 
-        // hanya uploader atau superadmin
         if (
             $attachment->uploaded_by !== $user->id &&
             !$user->hasRole('superadmin')
@@ -101,13 +94,10 @@ class TicketAttachmentController extends Controller
         $attachment->delete();
 
         return response()->json([
-            'message' => 'Attachment berhasil dihapus'
+            'message' => 'Attachment berhasil dihapus',
         ]);
     }
 
-    /**
-     * 📥 Download Attachment
-     */
     public function download(Request $request, Ticket $ticket, $attachmentId)
     {
         $user = $request->user();
@@ -120,9 +110,6 @@ class TicketAttachmentController extends Controller
             ->where('id', $attachmentId)
             ->firstOrFail();
 
-        return response()->download(
-            storage_path('app/public/' . $attachment->file_path),
-            $attachment->file_name
-        );
+        return $this->attachments->download($attachment);
     }
 }
