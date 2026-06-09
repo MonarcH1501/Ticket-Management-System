@@ -2,6 +2,21 @@
 
 use Illuminate\Support\Str;
 
+$mysqlSslCaPath = null;
+$mysqlSslCa = env('DB_SSL_CA');
+$mysqlSslCaBase64 = env('DB_SSL_CA_BASE64');
+
+if ($mysqlSslCaBase64) {
+    $decodedCa = base64_decode($mysqlSslCaBase64, true);
+
+    if ($decodedCa !== false) {
+        $mysqlSslCaPath = sys_get_temp_dir() . '/mysql-ca.pem';
+        file_put_contents($mysqlSslCaPath, $decodedCa);
+    }
+} elseif ($mysqlSslCa) {
+    $mysqlSslCaPath = base_path($mysqlSslCa);
+}
+
 return [
 
     /*
@@ -58,10 +73,10 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => base_path(env('DB_SSL_CA')),  // ← ganti nama env
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
-            ]) : [],
+            'options' => extension_loaded('pdo_mysql') && $mysqlSslCaPath ? [
+                PDO::MYSQL_ATTR_SSL_CA => $mysqlSslCaPath,
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => env('DB_SSL_VERIFY', false),
+            ] : [],
         ],
 
         'pgsql' => [
